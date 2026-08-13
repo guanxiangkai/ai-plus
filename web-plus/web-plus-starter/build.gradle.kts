@@ -1,0 +1,15 @@
+dependencies {
+    api(projects.webPlusCore)
+    api(projects.webPlusError)
+    api(projects.webPlusWeb)
+    api(projects.webPlusSecurity)
+    api(projects.webPlusProtection)
+    api(projects.webPlusLog)
+    api(projects.webPlusDoc)
+    api(projects.webPlusExcel)
+    api(projects.webPlusDict)
+    api(projects.webPlusMq)
+    api(projects.webPlusJob)
+    implementation(libs.bundles.starter.implementation)
+    annotationProcessor(libs.spring.boot.configuration.processor)
+}

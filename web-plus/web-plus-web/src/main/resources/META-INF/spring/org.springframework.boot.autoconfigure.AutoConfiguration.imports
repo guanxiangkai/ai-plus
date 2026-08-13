@@ -1,0 +1,5 @@
+io.github.guanxiangkai.web.plus.web.config.HttpClientAutoConfiguration
+io.github.guanxiangkai.web.plus.web.config.WebPlusCurrentUserAutoConfiguration
+io.github.guanxiangkai.web.plus.web.config.WebPlusCoreAutoConfiguration
+io.github.guanxiangkai.web.plus.web.config.WebPlusJpaAutoConfiguration
+io.github.guanxiangkai.web.plus.web.aot.WebNativeConfiguration

@@ -1,0 +1,27 @@
+.gradle/
+**/build/
+**/.gradle/
+.idea/
+*.iml
+*.log
+.DS_Store
+
+# 本地凭据、私钥与证书
+.env
+.env.*
+!.env.example
+settings.xml
+.npmrc.local
+.pypirc
+auth.json
+credentials*
+secrets*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.crt
+*.cer
+*.der

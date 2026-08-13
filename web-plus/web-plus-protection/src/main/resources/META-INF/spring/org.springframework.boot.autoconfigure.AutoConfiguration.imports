@@ -1,0 +1,3 @@
+io.github.guanxiangkai.web.plus.protection.aot.ProtectionNativeConfig
+io.github.guanxiangkai.web.plus.protection.autoconfigure.ApiRateLimitAutoConfiguration
+io.github.guanxiangkai.web.plus.protection.autoconfigure.DebounceAutoConfiguration

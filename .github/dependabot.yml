@@ -1,0 +1,28 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "02:00"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    target-branch: main
+    groups:
+      spring-platform:
+        patterns:
+          - "org.springframework*"
+      build-tooling:
+        patterns:
+          - "com.vanniktech*"
+          - "com.github.ben-manes*"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "02:30"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    target-branch: main

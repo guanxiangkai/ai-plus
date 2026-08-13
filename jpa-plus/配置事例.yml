@@ -1,0 +1,131 @@
+# JPA Plus 配置示例
+# 说明：这是面向业务项目的参考配置，只保留当前已落地且常用的配置项。
+
+jpa-plus:
+  # 可选：手动指定 SQL 方言；不配时会根据 DataSource URL 自动识别
+  # mysql / mariadb / postgresql / oracle / sqlserver / sqlite / h2 / clickhouse / dm / kingbase
+  # 注意：识别失败时会回退到通用编译器并打印 WARN 日志，建议明确配置
+  dialect: ""
+
+  # Flush 模式：AUTO / ALWAYS / MANUAL
+  flush-mode: AUTO
+
+  pagination:
+    # SIMPLE / OPTIMIZED
+    count-strategy: SIMPLE
+
+  debug:
+    enabled: false
+    print-params: true
+    slow-sql:
+      enabled: false
+      threshold: 1000
+
+  metrics:
+    # 已引入 Micrometer / Actuator 时自动生效
+    prefix: jpa.plus
+
+  id-generator:
+    type: AUTO # AUTO / SNOWFLAKE / UUID / CUSTOM
+    snowflake:
+      worker-id: ${SNOWFLAKE_WORKER_ID:1}
+      datacenter-id: ${SNOWFLAKE_DC_ID:1}
+      epoch: 1700000000000
+
+  encrypt:
+    # @Encrypt 使用当前活动密钥；生产环境请通过环境变量提供随机密钥
+    enabled: true
+    active-version: primary
+    keys:
+      primary: ${JPA_PLUS_ENCRYPT_KEY:}
+
+  dict:
+    jdbc:
+      enabled: false
+      table-name: jpa_plus_dict
+      auto-init-schema: false
+    cache:
+      enabled: true
+      ttl-seconds: 300
+
+  tenant:
+    # 多租户字段名；业务方注册 TenantIdProvider Bean 后自动生效
+    column: tenant_id
+    # 注意：不再需要 auto-register 配置项，注册 TenantIdProvider Bean 即自动启用
+
+  audit:
+    async:
+      # 是否启用虚拟线程异步发布审计事件
+      enabled: false
+    method:
+      # 是否启用 @SystemLog 方法级审计
+      enabled: true
+    # 字段级变更快照不通过配置项自动开启；如需 SAVE / DELETE diff，请注册 SnapshotAuditInterceptor Bean
+    # 该拦截器会按实体标识读取持久化前镜像，兼容托管实体更新、@EmbeddedId 与 property access 主键
+
+  sharding:
+    enabled: false
+    # REJECT / BEST_EFFORT / SEATA
+    cross-shard-policy: REJECT
+    rules:
+      - logic-table-name: order
+        db-count: 2
+        table-count: 4
+        db-pattern: order_db_{index}
+        table-pattern: order_{index}
+        sharding-key-field: userId
+
+# 可选：动态数据源配置（引入 jpa-plus-datasource / starter 后生效）
+spring:
+  datasource:
+    dynamic:
+      primary: master
+      strict: false
+      lazy: false
+      pool-type: hikari # hikari / druid
+
+      routing:
+        strategy: ANNOTATION # ANNOTATION / HEADER
+        header-name: X-DS
+
+      hikari:
+        maximum-pool-size: 10
+        minimum-idle: 5
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        pool-name: DynamicHikariCP
+        connection-test-query: SELECT 1
+
+      datasource-proxy:
+        enabled: false
+        log-level: debug
+        multiline: false
+        slow-query-threshold: 0
+        slow-query-log-level: warn
+
+      datasource:
+        master:
+          url: jdbc:mysql://localhost:3306/app_master?useSSL=false&serverTimezone=Asia/Shanghai
+          username: root
+          password: ${MASTER_DB_PASSWORD}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        slave_1:
+          url: jdbc:mysql://localhost:3306/app_slave_1?useSSL=false&serverTimezone=Asia/Shanghai
+          username: root
+          password: ${REPLICA_DB_PASSWORD}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+
+      refresh:
+        enabled: false
+        interval: 30s
+        reset-pool: true
+
+      jdbc:
+        enabled: false
+        table-name: jpa_plus_datasource
+        auto-init-schema: false
+
+      health:
+        enabled: true
+        include-detail: true

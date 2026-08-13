@@ -1,0 +1,187 @@
+# ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║                                    versions —— 统一版本管理区                                      ║
+# ║             所有依赖版本集中在这里统一维护，避免在项目各处分散设置；便于升级、排查兼容问题                          ║
+# ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+[versions]
+
+# ─────────────────────────── Spring 体系 ───────────────────────────
+spring-boot = "4.1.0"          # Spring Boot 4.1 基线；带入 Spring Framework 7.0.8、Spring Data Redis 2026.0.0 与 Jackson 3.1.4，需重点验证 Redis 自动配置与序列化兼容性
+
+# ─────────────────────────── 测试 ────────────────────────────────
+junit = "6.1.2"                # JUnit 6.1 正式补丁线
+
+# ─────────────────────────── Gradle 插件 ─────────────────────────
+lombok-plugin = "9.5.0"         # Lombok Gradle 插件
+testcontainers = "2.0.5"       # Testcontainers Java：集成测试容器编排
+archunit = "1.5.0"             # ArchUnit：JVM 架构约束测试
+hutool = "5.8.47"              # Hutool Core：内部工具辅助，禁止进入公共 API
+redisson = "4.7.0"             # Redisson：正式分布式 Redis 原语后端；需验证锁、限流与 Spring Data Redis 2026 组合兼容性
+bucket4j = "8.19.0"            # Bucket4j：可选令牌桶限流后端
+errorprone = "2.50.0"          # Error Prone：编译期缺陷模式检查；升级可能新增诊断，配合 -Werror 会直接阻断编译
+nullaway = "0.13.8"            # NullAway：基于 Error Prone 的空值检查；升级可能收紧空值推断，需以全量编译验证
+errorprone-plugin = "5.1.0"    # Error Prone Gradle 插件
+maven-publish-plugin = "0.37.0" # Vanniktech Maven Publish：Central Portal 上传与内存 GPG 签名
+
+# ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║                                  libraries —— 依赖坐标定义区                                       ║
+# ║               所有库的 groupId + artifactId 统一在这里定义，并引用上方 versions 中的版本                    ║
+# ║               未标注 version 的库由 Spring Boot BOM 统一管理版本                                       ║
+# ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+[libraries]
+
+# ═══════════════════════════ Spring Boot 核心 ═══════════════════════════
+# BOM（依赖版本管理，不引入实际 jar）
+spring-boot-dependencies = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "spring-boot" }
+
+# ═══════════════════════════ Redis 客户端 ═══════════════════════════
+# Spring Data Redis（包含 RedisTemplate、ReactiveRedisTemplate 等核心封装，版本由 BOM 管理）
+spring-data-redis = { group = "org.springframework.data", name = "spring-data-redis" }
+# Spring Boot Starter Data Redis（自动装配 Lettuce + RedisTemplate，由 starter 引入）
+spring-boot-starter-data-redis = { group = "org.springframework.boot", name = "spring-boot-starter-data-redis" }
+# Spring Boot Starter Cache（标准 Spring Cache 自动配置入口；用于 RedisPlusCacheManager 集成）
+spring-boot-starter-cache = { group = "org.springframework.boot", name = "spring-boot-starter-cache" }
+# Commons Pool2（Lettuce 连接池支持，多数据源 YAML 配置时必需，版本由 BOM 管理）
+commons-pool2 = { group = "org.apache.commons", name = "commons-pool2" }
+
+# ═══════════════════════════ 本地缓存 ═══════════════════════════
+# Caffeine 高性能本地缓存（2.0 起作为默认 L1 缓存运行时依赖，版本由 BOM 管理）
+caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine" }
+
+# ═══════════════════════════ 通用工具 ═══════════════════════════
+# 只引入 Hutool Core；禁止 hutool-all 进入公共 API，避免把大而全工具包传递给用户
+hutool-core = { group = "cn.hutool", name = "hutool-core", version.ref = "hutool" }
+
+# ═══════════════════════════ 可选成熟后端 ═══════════════════════════
+# Redisson 核心客户端；当前作为默认 LockBackend 与分布式 TOKEN_BUCKET 后端
+redisson = { group = "org.redisson", name = "redisson", version.ref = "redisson" }
+# Bucket4j JDK17 核心；当前作为无 RedissonClient 时的本地令牌桶后端
+bucket4j-core = { group = "com.bucket4j", name = "bucket4j_jdk17-core", version.ref = "bucket4j" }
+
+# ═══════════════════════════ Spring Boot 扩展 ═══════════════════════════
+spring-boot-autoconfigure = { group = "org.springframework.boot", name = "spring-boot-autoconfigure" }
+spring-boot-configuration-processor = { group = "org.springframework.boot", name = "spring-boot-configuration-processor" }
+# Spring Boot Health（HealthIndicator / Health，Spring Boot 4.x 从 actuator 拆分出来，版本由 BOM 管理）
+spring-boot-health = { group = "org.springframework.boot", name = "spring-boot-health" }
+
+# ═══════════════════════════ Spring Framework ═══════════════════════════
+# Spring Beans（ObjectProvider / DisposableBean 等 Bean 容器 API，版本由 BOM 管理）
+spring-beans = { group = "org.springframework", name = "spring-beans" }
+# Spring Core（DefaultParameterNameDiscoverer / @Order 等基础工具与核心 API，版本由 BOM 管理）
+spring-core = { group = "org.springframework", name = "spring-core" }
+# Spring Expression（SpEL 表达式解析 API，版本由 BOM 管理）
+spring-expression = { group = "org.springframework", name = "spring-expression" }
+# Spring Context（ApplicationEventPublisher / MethodBasedEvaluationContext 等仍位于此模块的 API，版本由 BOM 管理）
+spring-context = { group = "org.springframework", name = "spring-context" }
+# AspectJ Weaver（@Aspect / @Around 等注解，版本由 BOM 管理）
+aspectjweaver = { group = "org.aspectj", name = "aspectjweaver" }
+
+# ═══════════════════════════ 日志 ═══════════════════════════
+# SLF4J 日志门面（Lombok @Slf4j 生成的代码依赖此 API，版本由 Spring Boot BOM 管理）
+# 注意：Lombok 的 @Slf4j 只是编译期生成 Logger 字段的样板代码，并不自带 SLF4J 实现，
+#       因此 slf4j-api 需作为模块内部实现依赖存在；
+#       日志实现（logback-classic）由 spring-boot-starter-test 在测试时传递引入，
+#       生产环境由最终应用（starter）自行决定，库模块不应强制绑定日志实现。
+slf4j-api = { group = "org.slf4j", name = "slf4j-api" }
+
+# ═══════════════════════════ 可观测性 ═══════════════════════════
+# Micrometer Core —— 指标采集 API（governance 模块的公开 SPI 依赖）
+micrometer-core = { group = "io.micrometer", name = "micrometer-core" }
+
+# ═══════════════════════════ 序列化 ═══════════════════════════
+# Jackson 3（JSON 序列化，版本由 Spring Boot BOM 管理）
+jackson-databind = { group = "tools.jackson.core", name = "jackson-databind" }
+# Jackson 2 注解包 —— 仅补齐 Spring Boot Health classfile 兼容注解元数据，不进入运行时实现
+jackson-annotations = { group = "com.fasterxml.jackson.core", name = "jackson-annotations" }
+
+# ═══════════════════════════ Jakarta 验证 ═══════════════════════════
+# Jakarta Bean Validation API（@Validated / @NotNull / @Positive 等，版本由 Spring Boot BOM 管理）
+jakarta-validation-api = { group = "jakarta.validation", name = "jakarta.validation-api" }
+
+# ═══════════════════════════ 测试 ═══════════════════════════
+spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
+# JUnit 6 测试引擎与 Gradle 测试平台启动器
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit" }
+# Testcontainers 与 ArchUnit 只用于测试，不进入发布产物
+testcontainers-junit-jupiter = { group = "org.testcontainers", name = "testcontainers-junit-jupiter", version.ref = "testcontainers" }
+archunit-junit5 = { group = "com.tngtech.archunit", name = "archunit-junit5", version.ref = "archunit" }
+# 静态分析依赖由根构建脚本直接接入 errorprone 配置，不进入发布产物
+errorprone-core = { group = "com.google.errorprone", name = "error_prone_core", version.ref = "errorprone" }
+nullaway = { group = "com.uber.nullaway", name = "nullaway", version.ref = "nullaway" }
+
+
+# ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║                              bundles —— 按作用域分组的依赖组合                                       ║
+# ║           在 build.gradle.kts 中以 libs.bundles.xxx 引用，一次导入一组相关依赖                          ║
+# ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+[bundles]
+
+# 测试全家桶（testImplementation 级别；spring-boot-starter-test 已传递引入 logback-classic）
+testing = ["spring-boot-starter-test", "junit-jupiter", "junit-platform-launcher"]
+
+# core 模块公开 API（DefaultRedisScriptExecutor 等公开签名 + RedisPlusEvent 继承 ApplicationEvent）
+core-public-api = ["spring-data-redis", "spring-context"]
+
+# core 模块实现支撑（InvocationContextSpelSupport 的 Spring SpEL 依赖；spring-context 已在 public-api 中）
+core-impl-support = ["spring-core", "spring-expression", "aspectjweaver"]
+
+# lock 模块实现支撑（切面实现）
+lock-impl-support = ["aspectjweaver"]
+
+# datasource 模块公开 API（路由工厂真正暴露给使用方的类型）
+datasource-public-api = ["spring-data-redis"]
+
+# datasource 模块实现支撑（AOP 切面实现 / Spring Bean 生命周期 / @Order / 可选路由注入）
+datasource-impl-support = ["spring-beans", "spring-core", "aspectjweaver"]
+
+# cache 模块公开 API（缓存模板 / SPI）
+cache-public-api = ["spring-data-redis"]
+
+# cache 模块实现支撑（切面实现 + Caffeine 本地缓存 + Jackson 序列化实现）
+cache-impl-support = ["aspectjweaver", "caffeine", "jackson-databind"]
+
+# enhance 模块实现支撑（BloomCheck 切面实现）
+enhance-impl-support = ["aspectjweaver"]
+
+# ratelimit 模块公开 API
+ratelimit-public-api = ["spring-data-redis"]
+
+# idempotent 模块公开 API
+idempotent-public-api = ["spring-data-redis"]
+
+# idempotent 模块实现支撑
+idempotent-impl-support = ["aspectjweaver"]
+
+# queue 模块公开 API
+queue-public-api = ["spring-data-redis"]
+
+# queue 模块实现支撑
+queue-impl-support = ["hutool-core"]
+
+# governance 模块公开 API（指标 SPI + 健康检查）
+governance-public-api = ["micrometer-core", "spring-boot-health", "spring-data-redis"]
+
+# starter 模块实现支撑（自动装配 + AOP 桥接 + Bean 容器 + Data Redis Starter + 连接池）
+starter-impl-support = ["spring-beans", "aspectjweaver", "spring-boot-starter-data-redis", "spring-boot-starter-cache", "spring-boot-autoconfigure", "commons-pool2"]
+
+
+
+# ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║                                    plugins —— 构建工具插件                                         ║
+# ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+[plugins]
+
+# Lombok 编译期代码生成（@Data / @Slf4j / @Builder 等）
+lombok = { id = "io.freefair.lombok", version.ref = "lombok-plugin" }
+
+# Spring Boot Gradle 插件（bootJar / bootRun / 依赖管理）
+springboot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+
+# Error Prone / NullAway 静态检查
+errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
+maven-publish = { id = "com.vanniktech.maven.publish.base", version.ref = "maven-publish-plugin" }

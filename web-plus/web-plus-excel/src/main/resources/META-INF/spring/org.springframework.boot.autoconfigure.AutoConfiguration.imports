@@ -1,0 +1,2 @@
+io.github.guanxiangkai.web.plus.excel.autoconfigure.WebPlusExcelAutoConfiguration
+io.github.guanxiangkai.web.plus.excel.aot.ExcelNativeConfiguration

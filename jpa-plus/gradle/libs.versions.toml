@@ -1,0 +1,216 @@
+# ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║                                    versions —— 统一版本管理区                                      ║
+# ║             所有依赖版本集中在这里统一维护，避免在项目各处分散设置；便于升级、排查兼容问题                          ║
+# ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+[versions]
+
+# ─────────────────────────── Spring 体系 ───────────────────────────
+spring-boot = "4.1.0"          # Spring Boot 4.1 正式基线；带入 Spring Framework 7.0.8 与 Spring Data 2026.0.0，Repository/事务/健康检查 ABI 需构建验证
+houbb-sensitive-word = "0.29.5" # houbb sensitive-word 高级 DFA 敏感词引擎（可选集成）
+hibernate = "7.4.5.Final"      # Hibernate ORM 7.4 最新正式补丁，供 Query 模块内部 Flush/Session 能力使用
+
+# ─────────────────────────── 工具库 ──────────────────────────────
+hutool = "5.8.47"              # hutool-crypto：国密 SM4、AES-CBC；hutool-core：通用工具
+slf4j = "2.0.18"               # SLF4J API：库模块只绑定门面，不绑定实现
+
+# ─────────────────────────── SQL 调试 ────────────────────────────
+datasource-proxy = "1.11.0"      # datasource-proxy —— JDBC 代理层 SQL 追踪（比 P6Spy 更活跃，零连接池侵入）
+
+# ─────────────────────────── 连接池（可选）────────────────────────
+druid = "1.2.28"              # Alibaba Druid 连接池 —— 与 HikariCP 二选一（可选）
+
+# ─────────────────────────── 测试 ────────────────────────────────
+junit = "6.1.2"                # JUnit 6.1 正式补丁线
+
+# ─────────────────────────── Gradle 插件 ─────────────────────────
+lombok-plugin = "9.5.0"        # Lombok Gradle 插件
+lombok = "1.18.46"             # Lombok 编译期处理器
+versions-plugin = "0.59.0"     # Ben Manes Versions Plugin：依赖更新检查
+maven-publish-plugin = "0.37.0" # Vanniktech Maven Publish：Central Portal 上传与内存 GPG 签名
+
+
+# ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║                                  libraries —— 依赖坐标定义区                                       ║
+# ║               所有库的 groupId + artifactId 统一在这里定义，并引用上方 versions 中的版本                    ║
+# ║               未标注 version 的库版本由 Spring Boot BOM 统一管理                                       ║
+# ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+[libraries]
+
+# ═══════════════════════════ Spring Boot 核心 ═══════════════════════════
+# BOM（依赖版本管理，不引入实际 jar）
+spring-boot-dependencies = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "spring-boot" }
+
+# ═══════════════════════════ 数据库 ═══════════════════════════
+# JPA（阻塞式 JDBC 由虚拟线程托管，不会阻塞平台线程；版本由 Spring Boot BOM 统一管理）
+spring-boot-starter-data-jpa = { group = "org.springframework.boot", name = "spring-boot-starter-data-jpa" }
+
+# ═══════════════════════════ Jakarta ═══════════════════════════
+# Jakarta Persistence API（版本由 Spring Boot BOM 统一管理）
+jakarta-persistence-api = { group = "jakarta.persistence", name = "jakarta.persistence-api" }
+# Jakarta Validation API（@NotBlank / @Size / @Valid；版本由 Spring Boot BOM 统一管理）
+jakarta-validation-api = { group = "jakarta.validation", name = "jakarta.validation-api" }
+# Spring Boot Validation Starter：为配置属性约束提供 Jakarta Validation 运行时实现。
+spring-boot-starter-validation = { group = "org.springframework.boot", name = "spring-boot-starter-validation" }
+
+# ═══════════════════════════ Hibernate ═══════════════════════════
+# Hibernate ORM 核心（仅 Query 模块内部 Flush 脏检查实现使用；2.0 显式覆盖到最新 Final）
+hibernate-core = { group = "org.hibernate.orm", name = "hibernate-core", version.ref = "hibernate" }
+
+# ═══════════════════════════ Spring Boot 扩展 ═══════════════════════════
+# Spring Boot 自动装配注解（@AutoConfiguration / @ConditionalOn*；版本由 Spring Boot BOM 统一管理）
+spring-boot-autoconfigure = { group = "org.springframework.boot", name = "spring-boot-autoconfigure" }
+# Spring Boot 配置元数据处理器（生成 spring-configuration-metadata.json；版本由 Spring Boot BOM 统一管理）
+spring-boot-configuration-processor = { group = "org.springframework.boot", name = "spring-boot-configuration-processor" }
+# Spring Boot JDBC（Spring Boot 4.x 模块化：DataSourceAutoConfiguration / DataSourceProperties；版本由 Spring Boot BOM 统一管理）
+spring-boot-jdbc = { group = "org.springframework.boot", name = "spring-boot-jdbc" }
+# Spring Boot Health（HealthIndicator / Health，Spring Boot 4.x 从 actuator 拆分出来；版本由 Spring Boot BOM 统一管理）
+spring-boot-health = { group = "org.springframework.boot", name = "spring-boot-health" }
+
+# ═══════════════════════════ Spring Framework ═══════════════════════════
+# Spring Core（Ordered / AnnotationUtils / ResolvableType 等基础设施；版本由 Spring Boot BOM 统一管理）
+spring-core = { group = "org.springframework", name = "spring-core" }
+# Spring Beans（BeanFactory / BeanUtils / @Value 绑定基础设施；版本由 Spring Boot BOM 统一管理）
+spring-beans = { group = "org.springframework", name = "spring-beans" }
+# Spring Expression（SpEL 表达式解析；版本由 Spring Boot BOM 统一管理）
+spring-expression = { group = "org.springframework", name = "spring-expression" }
+# Spring Context（ApplicationEventPublisher 等核心容器能力；版本由 Spring Boot BOM 统一管理）
+spring-context = { group = "org.springframework", name = "spring-context" }
+# Spring JDBC（AbstractRoutingDataSource 等数据源路由基础设施；版本由 Spring Boot BOM 统一管理）
+spring-jdbc = { group = "org.springframework", name = "spring-jdbc" }
+# Spring AOP（@Aspect 切面支持；版本由 Spring Boot BOM 统一管理）
+spring-aop = { group = "org.springframework", name = "spring-aop" }
+# AspectJ Weaver（@Aspect / @Around 等注解；版本由 Spring Boot BOM 统一管理）
+aspectjweaver = { group = "org.aspectj", name = "aspectjweaver" }
+
+# ═══════════════════════════ Spring Data ═══════════════════════════
+# Spring Data JPA（JpaRepository / SimpleJpaRepository / RepositoryFactory；版本由 Spring Boot BOM 统一管理）
+spring-data-jpa = { group = "org.springframework.data", name = "spring-data-jpa" }
+# Spring Data Commons（Pageable / Sort 等通用抽象；版本由 Spring Boot BOM 统一管理）
+spring-data-commons = { group = "org.springframework.data", name = "spring-data-commons" }
+
+# ═══════════════════════════ 日志 ═══════════════════════════
+# SLF4J 日志门面（Lombok @Slf4j 生成的代码依赖此 API）
+# 注意：Lombok 的 @Slf4j 只是编译期生成 Logger 字段的样板代码，并不自带 SLF4J 实现，
+#       因此库模块编译期必须可见该 API；
+#       日志实现（logback-classic）由 spring-boot-starter-test 在测试时传递引入，
+#       生产环境由最终应用（starter）自行决定，库模块不应强制绑定日志实现。
+slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
+# Lombok 注解处理器（显式覆盖 FreeFair 插件传递版本，保证 compileOnly / annotationProcessor 一致）
+lombok = { group = "org.projectlombok", name = "lombok", version.ref = "lombok" }
+
+# ═══════════════════════════ 测试 ═══════════════════════════
+# Spring Boot 测试启动器（测试切片 / AssertJ / Mockito 等；版本由 Spring Boot BOM 统一管理）
+spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
+# H2 仅用于 starter 消费式 Repository 集成测试；版本由 Spring Boot BOM 统一管理。
+h2 = { group = "com.h2database", name = "h2" }
+mockito-core = { group = "org.mockito", name = "mockito-core" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit" }
+
+# ═══════════════════════════ 敏感词（可选集成） ═══════════════════════════
+# houbb sensitive-word —— 高级 DFA 引擎，支持全角/半角、繁简转换、拼音、数字替换绕过等
+# compileOnly：用户按需在自己的项目中引入，不引入则使用内置 DfaEngine（零依赖兜底）
+houbb-sensitive-word = { group = "com.github.houbb", name = "sensitive-word", version.ref = "houbb-sensitive-word" }
+
+# ═══════════════════════════ 工具库（可选集成） ═══════════════════════════
+# hutool-crypto —— 国密 SM4 / AES-CBC 修正（HutoolEncryptAlgorithm 依赖此库）
+# compileOnly：用户按需在自己的项目中引入，不引入则只能使用 JCE 内置算法（AES/AES_CBC）
+hutool-crypto = { group = "cn.hutool", name = "hutool-crypto", version.ref = "hutool" }
+# hutool-core —— 通用工具（IdUtil/DesensitizedUtil/ReflectUtil 等），供用户在业务层扩展使用
+hutool-core = { group = "cn.hutool", name = "hutool-core", version.ref = "hutool" }
+
+# ═══════════════════════════ SQL 追踪（可选集成） ═══════════════════════════
+# datasource-proxy —— JDBC DataSource 代理，拦截所有 SQL，输出带参数值的完整语句 + 执行耗时
+# 相比已停止维护的 P6Spy，datasource-proxy 持续更新、轻量、与 Spring Boot 无缝集成
+# compileOnly：通过 spring.datasource.dynamic.datasource-proxy.enabled=true + classpath 中有依赖时自动激活
+datasource-proxy = { group = "net.ttddyy", name = "datasource-proxy", version.ref = "datasource-proxy" }
+
+# ═══════════════════════════ 连接池（可选集成） ═══════════════════════════
+# Alibaba Druid —— 带 SQL 监控、防火墙、StatFilter 等企业级特性的连接池
+# compileOnly：通过 spring.datasource.dynamic.pool-type=druid + classpath 中有 druid 依赖时自动激活
+druid = { group = "com.alibaba", name = "druid", version.ref = "druid" }
+
+# ═══════════════════════════ 可观测性（可选集成） ═══════════════════════════
+# Micrometer Core —— 可观测性指标采集（jpa.plus.chain.execution / field.before_save / field.after_query；版本由 Spring Boot BOM 统一管理）
+# compileOnly：用户按需引入（通常由 spring-boot-starter-actuator 传递引入），不引入则使用 NoopJpaPlusMetrics
+micrometer-core = { group = "io.micrometer", name = "micrometer-core" }
+
+# ═══════════════════════════ JSON 序列化（可选集成） ═══════════════════════════
+# Jackson Databind 3 —— 审计快照序列化（JacksonSnapshotSerializer 可选使用），版本由 Spring Boot BOM 统一管理
+jackson-databind = { group = "tools.jackson.core", name = "jackson-databind" }
+# Jackson 2 注解包 —— 仅补齐 Spring Boot Health classfile 兼容注解元数据，不进入运行时实现
+jackson-annotations = { group = "com.fasterxml.jackson.core", name = "jackson-annotations" }
+
+
+# ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║                              bundles —— 按作用域分组的依赖组合                                       ║
+# ║           在 build.gradle.kts 中以 libs.bundles.xxx 引用，一次导入一组相关依赖                          ║
+# ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+[bundles]
+
+# 测试全家桶（testImplementation 级别；spring-boot-starter-test 已传递引入 logback-classic）
+testing = ["spring-boot-starter-test", "junit-jupiter", "junit-platform-launcher"]
+
+# Starter 自动装配基础设施（implementation 级别）
+starter-boot-autoconfigure = ["spring-boot-autoconfigure"]
+
+# Starter JDBC 自动配置基础设施（implementation 级别）
+starter-jdbc-autoconfigure = ["spring-boot-jdbc"]
+
+# Starter 配置元数据处理器（annotationProcessor 级别）
+starter-configuration-processor = ["spring-boot-configuration-processor"]
+
+# Starter 公开 API（api 级别）
+# JpaRepository / Pageable / EntityManager / ApplicationEventPublisher 等出现在 starter 对外类型签名中
+starter-public-api = ["spring-data-jpa", "jakarta-persistence-api", "spring-context"]
+
+# Starter 内部 Spring Core 基础设施（implementation 级别）
+# Binder / Environment / AnnotatedTypeMetadata / @Order 等仅用于 starter 内部装配实现
+starter-spring-core-internal = ["spring-core"]
+
+# Starter 内部 Bean 装配基础设施（implementation 级别）
+starter-spring-beans-internal = ["spring-beans"]
+
+# Query 模块公开 API（EntityManager / Pageable）
+query-public-api = ["jakarta-persistence-api", "spring-data-commons"]
+
+# Audit 模块公开 API（ApplicationEventPublisher / EntityManager / ObjectMapper）
+audit-public-api = ["spring-context", "jakarta-persistence-api", "jackson-databind"]
+
+# Datasource 模块公开 API（ApplicationEvent / JDBC 路由 / HealthIndicator）
+datasource-public-api = ["spring-context", "spring-jdbc", "spring-boot-health"]
+
+# Datasource 模块内部 AOP 基础设施
+datasource-aop-runtime = ["spring-aop", "aspectjweaver"]
+
+# Sharding 模块内部基础设施（implementation 级别）
+# @AutoConfiguration / @Bean / SpEL / AOP 运行时均仅用于 sharding 模块内部实现
+sharding-internal = ["spring-boot-autoconfigure", "spring-context", "spring-expression", "spring-aop", "aspectjweaver", "spring-data-commons", "jakarta-persistence-api"]
+
+
+# field 模块可选第三方增强（compileOnly 级别）
+# houbb-sensitive-word：高级 DFA 敏感词引擎；hutool-crypto：国密 SM4 / 增强 AES；hutool-core：通用工具
+field-optional = ["houbb-sensitive-word", "hutool-crypto", "hutool-core"]
+
+# starter 可选增强（compileOnly 级别）
+# micrometer-core：指标采集抽象；datasource-proxy：JDBC SQL 追踪；druid：可选连接池实现
+starter-optional = ["micrometer-core", "datasource-proxy", "druid"]
+
+
+# ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║                                    plugins —— 构建工具插件                                         ║
+# ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+[plugins]
+
+# Lombok 编译期代码生成（@Data / @Slf4j / @Builder 等）
+lombok = { id = "io.freefair.lombok", version.ref = "lombok-plugin" }
+
+# Spring Boot Gradle 插件（bootJar / bootRun / 依赖管理）
+springboot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+versions = { id = "io.github.ben-manes.versions", version.ref = "versions-plugin" }
+maven-publish = { id = "com.vanniktech.maven.publish.base", version.ref = "maven-publish-plugin" }

@@ -1,0 +1,46 @@
+web-plus:
+  import:
+    allowed-extensions: [".xlsx", ".xls", ".doc", ".docx"]
+    max-file-size: 20MB
+  api-crypto:
+    # 接口加解密总开关，默认关闭；开启后也只处理标注 @ApiCrypto 的接口。
+    enabled: false
+    # 默认使用 SM4-CBC-SM3；可按客户端协议显式调整。
+    strategy: SM4_CBC_SM3_V1
+    # 仅 AES_GCM_V1 使用。
+    pbkdf2-iterations: 120000
+    request:
+      # 入参解密总开关。接口还必须标注 @ApiCrypto(request = true)，开启后拒绝明文入参。
+      enabled: true
+      key-id: request-default
+      key: ${WEB_PLUS_API_REQUEST_CRYPTO_KEY:}
+    response:
+      # 出参加密总开关。接口还必须标注 @ApiCrypto(response = true)，仅处理 JSON 响应。
+      enabled: true
+      key-id: response-default
+      key: ${WEB_PLUS_API_RESPONSE_CRYPTO_KEY:}
+    runtime:
+      # JSON 聚合上限与专用加解密有界工作池；NDJSON、stream+json、SSE 和文件流不聚合。
+      max-request-body-size: 4MB
+      max-response-body-size: 8MB
+      max-query-envelope-length: 16384
+      worker-count: 8
+      task-queue-capacity: 1024
+  cors:
+    enabled: true
+  debounce:
+    enabled: true
+    duration: 1s
+    include-params: true
+  log:
+    access-log-enabled: true
+    operation-log-enabled: true
+  security:
+    api-rate-limit:
+      enabled: true
+      limit: 120
+      burst: 30
+      window: 1m
+    trusted-forward:
+      header-name: X-Trusted-Forward-Token
+      token: ${WEB_PLUS_TRUSTED_FORWARD_TOKEN:}

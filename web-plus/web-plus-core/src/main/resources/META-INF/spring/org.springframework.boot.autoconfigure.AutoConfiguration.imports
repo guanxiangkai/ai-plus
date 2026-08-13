@@ -1,0 +1,4 @@
+io.github.guanxiangkai.web.plus.core.config.CoreAutoConfiguration
+io.github.guanxiangkai.web.plus.core.config.VirtualThreadConfig
+io.github.guanxiangkai.web.plus.core.aot.GraalVMConfig
+

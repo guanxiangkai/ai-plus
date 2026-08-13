@@ -1,0 +1,3 @@
+io.github.guanxiangkai.web.plus.job.config.JobAutoConfiguration
+io.github.guanxiangkai.web.plus.job.aot.JobNativeConfig
+

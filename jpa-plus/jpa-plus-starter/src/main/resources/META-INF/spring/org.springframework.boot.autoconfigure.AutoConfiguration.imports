@@ -1,0 +1,11 @@
+io.github.guanxiangkai.jpa.plus.starter.JpaPlusAutoConfiguration
+io.github.guanxiangkai.jpa.plus.starter.JpaPlusMetricsAutoConfiguration
+io.github.guanxiangkai.jpa.plus.starter.JpaPlusEncryptionAutoConfiguration
+io.github.guanxiangkai.jpa.plus.starter.JpaPlusDataSourceAutoConfiguration
+io.github.guanxiangkai.jpa.plus.sharding.autoconfigure.ShardingAutoConfiguration
+io.github.guanxiangkai.jpa.plus.starter.JpaPlusQueryAutoConfiguration
+io.github.guanxiangkai.jpa.plus.starter.JpaPlusFieldAutoConfiguration
+io.github.guanxiangkai.jpa.plus.starter.JpaPlusInterceptorAutoConfiguration
+io.github.guanxiangkai.jpa.plus.starter.JpaPlusHibernateTenantAutoConfiguration
+io.github.guanxiangkai.jpa.plus.starter.JpaPlusAuditAutoConfiguration
+io.github.guanxiangkai.jpa.plus.starter.JpaPlusCoreAutoConfiguration

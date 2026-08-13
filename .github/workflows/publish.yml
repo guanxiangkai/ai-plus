@@ -1,0 +1,76 @@
+name: 发布 Maven 模块
+
+on:
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: 逗号分隔的模块名；首次发布可填写 all
+        required: true
+        default: all
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maven-package-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: 验证并发布所选模块
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: package-release
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: 校验发布来源
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+              echo "手工发布只能从 main 分支执行" >&2
+              exit 1
+            fi
+            exit 0
+          fi
+
+          if [[ "$GITHUB_REF" != refs/tags/v* ]]; then
+            echo "标签发布仅接受 v* 标签" >&2
+            exit 1
+          fi
+
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
+            echo "发布标签必须指向 main 分支历史" >&2
+            exit 1
+          fi
+
+      - name: 配置 JDK 25
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: graalvm
+          java-version: "25.0.4"
+
+      - name: 配置 Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      - name: 执行完整质量门禁
+        run: ./gradlew buildAll --no-daemon --stacktrace
+
+      - name: 发布所选模块
+        env:
+          RELEASE_MODULES: ${{ inputs.modules || 'all' }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.MAVEN_SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_SIGNING_PASSWORD }}
+        run: ./gradlew publishSelected -PreleaseModules="$RELEASE_MODULES" --no-daemon --stacktrace
