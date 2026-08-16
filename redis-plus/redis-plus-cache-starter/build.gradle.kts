@@ -7,8 +7,7 @@ dependencies {
     api(projects.redisPlusLockStarter)
 
     implementation(libs.bundles.starter.impl.support)
-    compileOnly(libs.jackson.databind)
-    compileOnly(libs.jakarta.validation.api)
+    compileOnly(libs.bundles.starter.compileOnly)
 
     annotationProcessor(libs.spring.boot.configuration.processor)
 }

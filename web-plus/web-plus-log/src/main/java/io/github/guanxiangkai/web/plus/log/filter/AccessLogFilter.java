@@ -4,7 +4,7 @@ import io.github.guanxiangkai.web.plus.core.context.CurrentUser;
 import io.github.guanxiangkai.web.plus.core.context.CurrentUserHolder;
 import io.github.guanxiangkai.web.plus.core.context.RequestContext;
 import io.github.guanxiangkai.web.plus.core.context.RequestContextHolder;
-import io.github.guanxiangkai.web.plus.core.util.IpUtils;
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.log.entity.BaseLog;
 import io.github.guanxiangkai.web.plus.log.spi.AccessLogHandler;
 import io.github.guanxiangkai.web.plus.log.support.LogEntityBinder;
@@ -37,12 +37,38 @@ public class AccessLogFilter implements WebFilter, Ordered {
     private final List<String> ignorePaths;
     private final AccessLogHandler accessLogHandler;
     private final Class<?> entityClass;
+    private final ClientIpResolver clientIpResolver;
     private final AntPathMatcher antMatcher = new AntPathMatcher();
 
-    public AccessLogFilter(List<String> ignorePaths, AccessLogHandler accessLogHandler, Class<?> entityClass) {
+    /**
+     * 创建仅使用 TCP 对端地址的访问日志过滤器。
+     *
+     * @param ignorePaths 忽略路径
+     * @param accessLogHandler 可选日志处理器
+     * @param entityClass 可选日志实体类型
+     */
+    public AccessLogFilter(List<String> ignorePaths,
+                           AccessLogHandler accessLogHandler,
+                           Class<?> entityClass) {
+        this(ignorePaths, accessLogHandler, entityClass, ClientIpResolver.directPeer());
+    }
+
+    /**
+     * 创建使用显式客户端 IP 策略的访问日志过滤器。
+     *
+     * @param ignorePaths 忽略路径
+     * @param accessLogHandler 可选日志处理器
+     * @param entityClass 可选日志实体类型
+     * @param clientIpResolver 客户端 IP 解析策略
+     */
+    public AccessLogFilter(List<String> ignorePaths,
+                           AccessLogHandler accessLogHandler,
+                           Class<?> entityClass,
+                           ClientIpResolver clientIpResolver) {
         this.ignorePaths = ignorePaths;
         this.accessLogHandler = accessLogHandler;
         this.entityClass = entityClass;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @Override
@@ -58,7 +84,7 @@ public class AccessLogFilter implements WebFilter, Ordered {
             return chain.filter(exchange);
         }
 
-        final String ip = IpUtils.getClientIp(exchange.getRequest());
+        final String ip = clientIpResolver.resolve(exchange.getRequest());
         final String userAgent = exchange.getRequest().getHeaders().getFirst("User-Agent");
         final String method = exchange.getRequest().getMethod().name();
         final long startTime = System.currentTimeMillis();
@@ -102,7 +128,8 @@ public class AccessLogFilter implements WebFilter, Ordered {
                                 try {
                                     accessLogHandler.handle(entity);
                                 } catch (Exception e) {
-                                    log.error("[web-plus] AccessLogHandler 执行异常", e);
+                                    log.error("[web-plus] AccessLogHandler 执行异常: exception={}",
+                                            e.getClass().getSimpleName());
                                 }
                             }
                         }

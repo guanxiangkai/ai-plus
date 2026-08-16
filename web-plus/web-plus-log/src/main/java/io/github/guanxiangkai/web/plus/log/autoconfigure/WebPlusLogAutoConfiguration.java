@@ -1,6 +1,7 @@
 package io.github.guanxiangkai.web.plus.log.autoconfigure;
 
 import io.github.guanxiangkai.web.plus.core.spi.TraceIdGenerator;
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.log.aspect.*;
 import io.github.guanxiangkai.web.plus.log.context.OperationLogContextAccessor;
 import io.github.guanxiangkai.web.plus.log.context.RequestContextThreadLocalAccessor;
@@ -12,6 +13,7 @@ import io.github.guanxiangkai.web.plus.log.support.LogEntityBinder;
 import io.micrometer.context.ContextRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -110,9 +112,11 @@ public class WebPlusLogAutoConfiguration {
     @ConditionalOnProperty(prefix = "web-plus.log", name = "access-log-enabled",
             havingValue = "true", matchIfMissing = true)
     public AccessLogFilter accessLogFilter(LogProperties props,
-                                           @Autowired(required = false) AccessLogHandler accessLogHandler) {
+                                           @Autowired(required = false) AccessLogHandler accessLogHandler,
+                                           ObjectProvider<ClientIpResolver> clientIpResolver) {
         Class<?> entityClass = resolveClass(props.accessLogEntityClass(), "accessLogEntityClass");
-        return new AccessLogFilter(props.ignorePaths(), accessLogHandler, entityClass);
+        return new AccessLogFilter(props.ignorePaths(), accessLogHandler, entityClass,
+                clientIpResolver.getIfAvailable(ClientIpResolver::directPeer));
     }
 
     /**
@@ -182,9 +186,8 @@ public class WebPlusLogAutoConfiguration {
     public LoginLogHandler defaultLoginLogHandler() {
         return entity -> {
             if (entity == null) return;
-            log.debug("[login] action={} user={} ip={} status={}",
-                    LogEntityBinder.get(entity, "action"),
-                    entity.getUsername(), entity.getClientIp(), entity.getStatus());
+            log.debug("[login] action={} status={}",
+                    LogEntityBinder.get(entity, "action"), entity.getStatus());
         };
     }
 
@@ -229,10 +232,8 @@ public class WebPlusLogAutoConfiguration {
     public OssLogHandler defaultOssLogHandler() {
         return entity -> {
             if (entity == null) return;
-            log.debug("[oss-upload] file={} size={} bucket={} cost={}ms status={}",
-                    LogEntityBinder.get(entity, "originalName"),
+            log.debug("[oss-upload] size={} cost={}ms status={}",
                     LogEntityBinder.get(entity, "fileSize"),
-                    LogEntityBinder.get(entity, "bucketName"),
                     LogEntityBinder.get(entity, "costMs"),
                     entity.getStatus());
         };
@@ -305,10 +306,9 @@ public class WebPlusLogAutoConfiguration {
     public SseLogHandler defaultSseLogHandler() {
         return entity -> {
             if (entity == null) return;
-            log.debug("[sse] type={} target={} user={} cost={}ms status={}",
+            log.debug("[sse] type={} target={} cost={}ms status={}",
                     LogEntityBinder.get(entity, "messageType"),
                     LogEntityBinder.get(entity, "targetType"),
-                    entity.getUserId(),
                     LogEntityBinder.get(entity, "costMs"),
                     entity.getStatus());
         };

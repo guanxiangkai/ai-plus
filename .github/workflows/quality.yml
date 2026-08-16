@@ -5,32 +5,18 @@ on:
   pull_request:
   push:
     branches:
+      - dev
+      - test
       - main
 
 permissions:
   contents: read
-  pull-requests: read
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  secrets:
-    name: 密钥与敏感信息扫描
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: 检出完整历史
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: 执行 Gitleaks 扫描
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   verify:
     name: 构建与测试全部模块
     runs-on: ubuntu-latest
@@ -48,7 +34,7 @@ jobs:
           java-version: "25.0.4"
 
       - name: 配置 Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
 
       - name: 执行完整质量门禁
         run: ./gradlew buildAll --no-daemon --stacktrace

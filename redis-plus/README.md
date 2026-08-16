@@ -5,7 +5,7 @@
     <img src="https://img.shields.io/badge/JDK-25-blue" alt="JDK 25"/>
     <img src="https://img.shields.io/badge/Spring%20Boot-4.1.0-green" alt="Spring Boot 4.1.0"/>
     <img src="https://img.shields.io/badge/License-Apache%202.0-orange" alt="License"/>
-    <img src="https://img.shields.io/badge/Version-1.0.1-brightgreen" alt="Version"/>
+    <img src="https://img.shields.io/badge/Starter-2.1.0-brightgreen" alt="Starter 版本"/>
   </p>
 </p>
 
@@ -37,7 +37,7 @@
 |-------------------------|------------------------------------------------------------------------------------------|
 | `redis-plus-core`       | 核心基础设施：统一异常、Key 规范、序列化抽象、TTL 策略、事件模型（`ApplicationEvent`）、指标 SPI                          |
 | `redis-plus-lock`       | Redisson 分布式锁、读写锁、WatchDog、锁降级、锁事件、`LockKeyResolver`/`LockFailureHandler`/`LockEventListener` SPI |
-| `redis-plus-datasource` | 多 Redis 数据源切换、路由连接工厂（实现 `RedisConnectionFactory`）、读写路由、租户命名空间扩展                          |
+| `redis-plus-datasource` | 多 Redis 数据源切换、路由连接工厂（实现 `RedisConnectionFactory`）、单节点 Lettuce 连接工厂构建器、读写路由、租户命名空间扩展       |
 | `redis-plus-cache`      | L1 Caffeine + L2 Redis + L3 回源保护的三级缓存，内置防穿透/防击穿；通过 `CacheLoadProtection` SPI 解耦锁依赖       |
 | `redis-plus-enhance`    | 布隆过滤器（`@BloomCheck`）、批量缓存操作、防穿透/防击穿/防雪崩策略 SPI                                            |
 | `redis-plus-ratelimit`  | 限流（`@RateLimit`，固定窗口/滑动窗口/Redisson 分布式令牌桶/漏桶）、限流算法 SPI                                 |
@@ -90,7 +90,7 @@
 |-------------|-------------------|
 | JDK         | `25`              |
 | Spring Boot | `4.1.0+`          |
-| Gradle      | `9.6.1`（Kotlin DSL） |
+| Gradle      | `9.7.0`（Kotlin DSL） |
 
 > 构建使用 JDK 25 toolchain，不需要 `--enable-preview`。
 
@@ -99,7 +99,7 @@
 ```kotlin
 dependencies {
     // 推荐：Spring Boot 项目直接接入 starter
-    implementation("io.github.guanxiangkai:redis-plus-starter:1.0.1")
+    implementation("io.github.guanxiangkai:redis-plus-starter:2.1.0")
 
     // 可选：启用 Micrometer 指标 / 健康检查
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -114,21 +114,38 @@ dependencies {
 ```kotlin
 dependencies {
     // 推荐：按能力引入 starter，可获得对应自动装配
-    implementation("io.github.guanxiangkai:redis-plus-lock-starter:1.0.1")
-    implementation("io.github.guanxiangkai:redis-plus-cache-starter:1.0.1")
-    implementation("io.github.guanxiangkai:redis-plus-queue-starter:1.0.2")
+    implementation("io.github.guanxiangkai:redis-plus-lock-starter:1.0.2")
+    implementation("io.github.guanxiangkai:redis-plus-cache-starter:2.0.1")
+    implementation("io.github.guanxiangkai:redis-plus-queue-starter:2.0.2")
 
     // 或者只引入纯功能模块，自行装配 Bean
-    implementation("io.github.guanxiangkai:redis-plus-core:1.0.1")
-    implementation("io.github.guanxiangkai:redis-plus-lock:1.0.1")
-    implementation("io.github.guanxiangkai:redis-plus-cache:1.0.1")
-    implementation("io.github.guanxiangkai:redis-plus-enhance:1.0.1")
-    implementation("io.github.guanxiangkai:redis-plus-ratelimit:1.0.1")
-    implementation("io.github.guanxiangkai:redis-plus-idempotent:1.0.1")
-    implementation("io.github.guanxiangkai:redis-plus-queue:1.0.2")
-    implementation("io.github.guanxiangkai:redis-plus-governance:1.0.1")
-    implementation("io.github.guanxiangkai:redis-plus-datasource:1.0.1")
+    implementation("io.github.guanxiangkai:redis-plus-core:1.0.2")
+    implementation("io.github.guanxiangkai:redis-plus-lock:1.0.2")
+    implementation("io.github.guanxiangkai:redis-plus-cache:2.0.1")
+    implementation("io.github.guanxiangkai:redis-plus-enhance:2.0.1")
+    implementation("io.github.guanxiangkai:redis-plus-ratelimit:1.0.2")
+    implementation("io.github.guanxiangkai:redis-plus-idempotent:1.0.2")
+    implementation("io.github.guanxiangkai:redis-plus-queue:2.0.1")
+    implementation("io.github.guanxiangkai:redis-plus-governance:1.0.2")
+    implementation("io.github.guanxiangkai:redis-plus-datasource:1.1.0")
 }
+```
+
+业务系统需要连接认证库、限流库等额外 Redis DB 时，可复用统一构建器，避免遗漏用户名、
+连接超时、关闭超时、客户端名和 TLS 配置：
+
+```java
+LettuceConnectionFactory factory = LettuceConnectionFactoryBuilder
+        .standalone("redis.example.com", 6379)
+        .database(3)
+        .username("platform")
+        .password(redisPassword)
+        .clientName("platform-auth")
+        .commandTimeout(Duration.ofSeconds(3))
+        .connectTimeout(Duration.ofSeconds(3))
+        .shutdownTimeout(Duration.ofMillis(100))
+        .ssl(true, false, true)
+        .build();
 ```
 
 ### Maven
@@ -138,7 +155,7 @@ dependencies {
 <dependency>
     <groupId>io.github.guanxiangkai</groupId>
     <artifactId>redis-plus-starter</artifactId>
-    <version>1.0.1</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
@@ -336,12 +353,13 @@ redis-plus:
 
 ## 📋 版本信息
 
-| 属性       | 值              |
-|----------|----------------|
-| Group    | `io.github.guanxiangkai` |
-| Version  | `1.0.1`    |
-| JDK      | `25`           |
-| Encoding | `UTF-8`        |
+| 属性 | 值 |
+| --- | --- |
+| Group | `io.github.guanxiangkai` |
+| 聚合 Starter | `redis-plus-starter:2.1.0` |
+| 模块版本来源 | `../gradle/module-versions.properties` |
+| JDK | `25` |
+| Encoding | `UTF-8` |
 
 ---
 

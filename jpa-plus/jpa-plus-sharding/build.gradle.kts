@@ -27,8 +27,7 @@ dependencies {
     api(projects.jpaPlusCore)             // ShardingInterceptor 公共类型实现 DataInterceptor / DataInvocation 等 core 契约
     api(projects.jpaPlusDatasource)       // SeataShardingTransactionTemplate 公开使用 JpaPlusContext
     implementation(libs.bundles.sharding.internal)     // @AutoConfiguration / @Bean / SpEL / AspectJ 仅供模块内部实现
-    implementation(libs.jakarta.validation.api)        // ShardingProperties 上的 @Valid / @NotBlank / @Min / @Max / @Pattern 校验注解
-    implementation(libs.spring.boot.starter.validation) // 自动配置绑定分片上限时所需的校验实现
+    implementation(libs.bundles.sharding.validation)  // 配置属性校验注解与运行时实现
     annotationProcessor(platform(libs.spring.boot.dependencies))
     annotationProcessor(libs.spring.boot.configuration.processor)
 

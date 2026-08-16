@@ -7,9 +7,13 @@
 
 # ─────────────────────────── Spring 体系 ───────────────────────────
 spring-boot = "4.1.0"          # Spring Boot 4.1 基线；带入 Spring Framework 7.0.8、Spring Data Redis 2026.0.0 与 Jackson 3.1.4，需重点验证 Redis 自动配置与序列化兼容性
+# Spring Boot 4.1 使用 Jackson 3.1 LTS；固定已修复安全问题的补丁，不跨到 3.2 非 LTS 次版本。
+jackson3 = "3.1.5"
+# Netty 保持 Boot 4.1 的 4.2 兼容线，仅提升到官方已发布并修复已知漏洞的补丁版本。
+netty = "4.2.16.Final"
 
 # ─────────────────────────── 测试 ────────────────────────────────
-junit = "6.1.2"                # JUnit 6.1 正式补丁线
+junit = "6.1.3"                # JUnit 6.1 最新正式补丁，统一 Jupiter 与 Platform 测试运行时
 
 # ─────────────────────────── Gradle 插件 ─────────────────────────
 lombok-plugin = "9.5.0"         # Lombok Gradle 插件
@@ -21,7 +25,7 @@ bucket4j = "8.19.0"            # Bucket4j：可选令牌桶限流后端
 errorprone = "2.50.0"          # Error Prone：编译期缺陷模式检查；升级可能新增诊断，配合 -Werror 会直接阻断编译
 nullaway = "0.13.8"            # NullAway：基于 Error Prone 的空值检查；升级可能收紧空值推断，需以全量编译验证
 errorprone-plugin = "5.1.0"    # Error Prone Gradle 插件
-maven-publish-plugin = "0.37.0" # Vanniktech Maven Publish：Central Portal 上传与内存 GPG 签名
+jspecify = "1.0.0"             # JSpecify 当前稳定版；用于公开 API 的标准可空性类型注解
 
 # ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
 # ║                                  libraries —— 依赖坐标定义区                                       ║
@@ -34,15 +38,20 @@ maven-publish-plugin = "0.37.0" # Vanniktech Maven Publish：Central Portal 上�
 # ═══════════════════════════ Spring Boot 核心 ═══════════════════════════
 # BOM（依赖版本管理，不引入实际 jar）
 spring-boot-dependencies = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "spring-boot" }
+# 运行时基础库的安全补丁 BOM；通过发布模块的 api 平台约束传递给消费方。
+jackson3-bom = { group = "tools.jackson", name = "jackson-bom", version.ref = "jackson3" }
+netty-bom = { group = "io.netty", name = "netty-bom", version.ref = "netty" }
 
 # ═══════════════════════════ Redis 客户端 ═══════════════════════════
 # Spring Data Redis（包含 RedisTemplate、ReactiveRedisTemplate 等核心封装，版本由 BOM 管理）
 spring-data-redis = { group = "org.springframework.data", name = "spring-data-redis" }
+# Lettuce 核心客户端（公共连接工厂构建器的运行时实现，版本由 Spring Boot BOM 管理）
+lettuce-core = { group = "io.lettuce", name = "lettuce-core" }
 # Spring Boot Starter Data Redis（自动装配 Lettuce + RedisTemplate，由 starter 引入）
 spring-boot-starter-data-redis = { group = "org.springframework.boot", name = "spring-boot-starter-data-redis" }
 # Spring Boot Starter Cache（标准 Spring Cache 自动配置入口；用于 RedisPlusCacheManager 集成）
 spring-boot-starter-cache = { group = "org.springframework.boot", name = "spring-boot-starter-cache" }
-# Commons Pool2（Lettuce 连接池支持，多数据源 YAML 配置时必需，版本由 BOM 管理）
+# Commons Pool2（Lettuce 连接池支持，公共连接工厂构建器与多数据源配置共同使用，版本由 BOM 管理）
 commons-pool2 = { group = "org.apache.commons", name = "commons-pool2" }
 
 # ═══════════════════════════ 本地缓存 ═══════════════════════════
@@ -110,6 +119,8 @@ archunit-junit5 = { group = "com.tngtech.archunit", name = "archunit-junit5", ve
 # 静态分析依赖由根构建脚本直接接入 errorprone 配置，不进入发布产物
 errorprone-core = { group = "com.google.errorprone", name = "error_prone_core", version.ref = "errorprone" }
 nullaway = { group = "com.uber.nullaway", name = "nullaway", version.ref = "nullaway" }
+# JSpecify 类型注解仅参与编译和公共契约描述，不引入运行时行为
+jspecify = { group = "org.jspecify", name = "jspecify", version.ref = "jspecify" }
 
 
 # ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -119,8 +130,8 @@ nullaway = { group = "com.uber.nullaway", name = "nullaway", version.ref = "null
 
 [bundles]
 
-# 测试全家桶（testImplementation 级别；spring-boot-starter-test 已传递引入 logback-classic）
-testing = ["spring-boot-starter-test", "junit-jupiter", "junit-platform-launcher"]
+# 测试编译依赖组；JUnit Platform Launcher 必须由构建脚本单独声明为 testRuntimeOnly。
+testing = ["spring-boot-starter-test", "junit-jupiter"]
 
 # core 模块公开 API（DefaultRedisScriptExecutor 等公开签名 + RedisPlusEvent 继承 ApplicationEvent）
 core-public-api = ["spring-data-redis", "spring-context"]
@@ -137,6 +148,9 @@ datasource-public-api = ["spring-data-redis"]
 # datasource 模块实现支撑（AOP 切面实现 / Spring Bean 生命周期 / @Order / 可选路由注入）
 datasource-impl-support = ["spring-beans", "spring-core", "aspectjweaver"]
 
+# datasource 公共构建器的 Lettuce 与 Commons Pool 运行时实现；两者必须随模块共同发布。
+datasource-client-runtime = ["lettuce-core", "commons-pool2"]
+
 # cache 模块公开 API（缓存模板 / SPI）
 cache-public-api = ["spring-data-redis"]
 
@@ -148,6 +162,9 @@ enhance-impl-support = ["aspectjweaver"]
 
 # ratelimit 模块公开 API
 ratelimit-public-api = ["spring-data-redis"]
+
+# ratelimit 模块的本地与分布式令牌桶策略实现；二者共同构成默认后端集合。
+ratelimit-strategy-backends = ["bucket4j-core", "redisson"]
 
 # idempotent 模块公开 API
 idempotent-public-api = ["spring-data-redis"]
@@ -167,6 +184,12 @@ governance-public-api = ["micrometer-core", "spring-boot-health", "spring-data-r
 # starter 模块实现支撑（自动装配 + AOP 桥接 + Bean 容器 + Data Redis Starter + 连接池）
 starter-impl-support = ["spring-beans", "aspectjweaver", "spring-boot-starter-data-redis", "spring-boot-starter-cache", "spring-boot-autoconfigure", "commons-pool2"]
 
+# 需要同时编译 Jackson 序列化 Bean 与 Jakarta Validation 配置属性的 Starter 契约。
+starter-compileOnly = ["jackson-databind", "jakarta-validation-api"]
+
+# 聚合 starter 的序列化、分布式后端、容器集成与架构约束测试依赖。
+starter-testing = ["jackson-databind", "redisson", "testcontainers-junit-jupiter", "archunit-junit5"]
+
 
 
 # ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -184,4 +207,3 @@ springboot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 
 # Error Prone / NullAway 静态检查
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
-maven-publish = { id = "com.vanniktech.maven.publish.base", version.ref = "maven-publish-plugin" }

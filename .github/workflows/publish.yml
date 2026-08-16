@@ -3,17 +3,34 @@ name: 发布 Maven 模块
 on:
   workflow_dispatch:
     inputs:
+      registry:
+        description: 发布目标
+        required: true
+        default: maven-central
+        type: choice
+        options:
+          - maven-central
+          - github-packages
       modules:
         description: 逗号分隔的模块名；首次发布可填写 all
         required: true
         default: all
         type: string
+      central-mode:
+        description: Central 校验后的处理方式
+        required: true
+        default: user_managed
+        type: choice
+        options:
+          - user_managed
+          - automatic
   push:
     tags:
       - "v*"
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: maven-package-release
@@ -60,17 +77,56 @@ jobs:
           java-version: "25.0.4"
 
       - name: 配置 Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
 
       - name: 执行完整质量门禁
         run: ./gradlew buildAll --no-daemon --stacktrace
 
-      - name: 发布所选模块
+      - name: 发布到 GitHub Packages
+        if: ${{ (inputs.registry || 'github-packages') == 'github-packages' }}
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_MODULES: ${{ inputs.modules || 'all' }}
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.MAVEN_SIGNING_KEY_ID }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_SIGNING_PASSWORD }}
         run: ./gradlew publishSelected -PreleaseModules="$RELEASE_MODULES" --no-daemon --stacktrace
+
+      - name: 校验 Maven Central Secrets
+        if: ${{ inputs.registry == 'maven-central' }}
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$CENTRAL_USERNAME"
+          test -n "$CENTRAL_PASSWORD"
+          test -n "$GPG_PRIVATE_KEY"
+          test -n "$GPG_PASSPHRASE"
+
+      - name: 签名并上传到 Central 暂存区
+        if: ${{ inputs.registry == 'maven-central' }}
+        env:
+          ORG_GRADLE_PROJECT_centralUsername: ${{ secrets.CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_centralPassword: ${{ secrets.CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_PRIVATE_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.GPG_PASSPHRASE }}
+          RELEASE_MODULES: ${{ inputs.modules }}
+        run: ./gradlew publishSelectedToCentral -PreleaseModules="$RELEASE_MODULES" --no-daemon --stacktrace
+
+      - name: 提交 Central Portal 校验
+        if: ${{ inputs.registry == 'maven-central' }}
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          CENTRAL_MODE: ${{ inputs.central-mode }}
+        run: |
+          set -euo pipefail
+          central_authorization=$(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_PASSWORD" | base64 | tr -d '\n')
+          {
+            printf 'request = "POST"\n'
+            printf 'header = "Authorization: Bearer %s"\n' "$central_authorization"
+            printf 'url = "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/io.github.guanxiangkai?publishing_type=%s"\n' "$CENTRAL_MODE"
+            printf 'fail\nsilent\nshow-error\n'
+          } | curl --config - --output /dev/null
+          unset central_authorization
+          echo "Central Portal 已接受暂存仓库，处理模式：$CENTRAL_MODE"

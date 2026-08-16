@@ -25,10 +25,10 @@
 spring:
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      database: ${REDIS_DB:0}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      database: ${REDIS_DATABASE}
       timeout: 3s
       connect-timeout: 3s
       lettuce:
@@ -73,12 +73,19 @@ spring:
 #    sources:
 #      # ── 标签 "master" ── 对应 @RedisDS("master") ──
 #      master:
-#        host: ${REDIS_MASTER_HOST:localhost}
-#        port: ${REDIS_MASTER_PORT:6379}
-#        password: ${REDIS_MASTER_PASSWORD:}
-#        database: 0          # Redis DB 编号，0~15，与路由标签无关
+#        host: ${REDIS_PRIMARY_HOST}
+#        port: ${REDIS_PRIMARY_PORT}
+#        username: ${REDIS_PRIMARY_USERNAME}
+#        password: ${REDIS_PRIMARY_PASSWORD}
+#        client-name: ${REDIS_PRIMARY_CLIENT_NAME}
+#        database: ${REDIS_PRIMARY_DATABASE} # Redis DB 编号，0~15，与路由标签无关
 #        timeout: 3s
 #        connect-timeout: 3s
+#        shutdown-timeout: 100ms
+#        ssl:
+#          enabled: false
+#          start-tls: false
+#          verify-peer: true
 #        pool:
 #          enabled: true
 #          max-active: 16
@@ -87,10 +94,10 @@ spring:
 #          max-wait: 3s
 #      # ── 标签 "slave" ── 对应 @RedisDS("slave") ──
 #      slave:
-#        host: ${REDIS_SLAVE_HOST:localhost}
-#        port: ${REDIS_SLAVE_PORT:6380}
-#        password: ${REDIS_SLAVE_PASSWORD:}
-#        database: 0
+#        host: ${REDIS_REPLICA_HOST}
+#        port: ${REDIS_REPLICA_PORT}
+#        password: ${REDIS_REPLICA_PASSWORD}
+#        database: ${REDIS_REPLICA_DATABASE}
 #        timeout: 3s
 #        connect-timeout: 3s
 #        pool:
@@ -101,10 +108,10 @@ spring:
 #          max-wait: 3s
 #      # ── 标签 "cache" ── 对应 @RedisDS("cache") ──
 #      cache:
-#        host: ${REDIS_CACHE_HOST:localhost}
-#        port: ${REDIS_CACHE_PORT:6381}
-#        password: ${REDIS_CACHE_PASSWORD:}
-#        database: 1          # 这个实例专用 DB 1，与标签名无关
+#        host: ${REDIS_CACHE_HOST}
+#        port: ${REDIS_CACHE_PORT}
+#        password: ${REDIS_CACHE_PASSWORD}
+#        database: ${REDIS_CACHE_DATABASE} # 该实例使用的 Redis DB 编号
 #        timeout: 2s
 #        connect-timeout: 2s
 #        pool:

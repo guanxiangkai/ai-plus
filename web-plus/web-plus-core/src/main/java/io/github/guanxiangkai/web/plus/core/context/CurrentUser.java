@@ -47,4 +47,15 @@ public record CurrentUser(
                 Set.of(), Set.of(), Set.of(), false, null, System.currentTimeMillis(), Map.of());
     }
 
+    /**
+     * 返回不包含用户身份、租户、部门、授权范围和扩展声明的诊断摘要。
+     *
+     * @return 已脱敏的当前用户摘要
+     */
+    @Override
+    public String toString() {
+        return "CurrentUser[identity=<redacted>, superAdmin=" + superAdmin
+                + ", loginTime=" + loginTime + ", authorization=<redacted>]";
+    }
+
 }

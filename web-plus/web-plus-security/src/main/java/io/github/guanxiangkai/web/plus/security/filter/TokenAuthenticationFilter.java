@@ -118,8 +118,8 @@ public class TokenAuthenticationFilter implements WebFilter {
                     return chain.filter(exchange);
                 }
                 if (!isTrustedGatewayRequest(exchange, trustedIps, properties.gatewayTrustedProxyIps())) {
-                    log.warn("[web-plus] 拒绝来自非受信网关/代理的透传请求: peerIp={}, forwardedChain={}",
-                            resolvePeerIp(exchange), resolveForwardedChain(exchange));
+                    log.warn("[web-plus] 拒绝来自非受信网关/代理的透传请求: path={}, forwardedHopCount={}",
+                            exchange.getRequest().getURI().getPath(), resolveForwardedChain(exchange).size());
                     return chain.filter(exchange);
                 }
                 return resolveGatewayUser(userId, userClaims, userClaimsEncoding)
@@ -134,7 +134,7 @@ public class TokenAuthenticationFilter implements WebFilter {
     private Mono<Void> processAuthenticated(CurrentUser user,
                                             ServerWebExchange exchange,
                                             WebFilterChain chain) {
-        log.debug("认证成功: userId={}", user.userId());
+        log.debug("认证成功: path={}", exchange.getRequest().getURI().getPath());
 
         List<SimpleGrantedAuthority> authorities = user.permissions().stream()
                 .map(SimpleGrantedAuthority::new)

@@ -37,34 +37,34 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ApiResponse<Void> handleAuthException(AuthException ex, ServerWebExchange exchange) {
-        log.warn("认证异常: code={}, path={}, msg={}", ex.getCode(), getPath(exchange), ex.getMessage());
+        log.warn("认证异常: code={}, path={}", ex.getCode(), getPath(exchange));
         return ApiResponse.fail(ex.getHttpStatus(), ex.getMessage());
     }
 
     @ExceptionHandler(PermissionDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiResponse<Void> handlePermissionDenied(PermissionDeniedException ex, ServerWebExchange exchange) {
-        log.warn("权限不足: path={}, msg={}", getPath(exchange), ex.getMessage());
+        log.warn("权限不足: path={}", getPath(exchange));
         return ApiResponse.fail(ex.getHttpStatus(), ex.getMessage());
     }
 
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Object> handleValidation(ValidationException ex, ServerWebExchange exchange) {
-        log.debug("参数校验失败: path={}, msg={}", getPath(exchange), ex.getMessage());
+        log.debug("参数校验失败: path={}", getPath(exchange));
         return ApiResponse.fail(ex.getHttpStatus(), ex.getMessage(), ex.getDetails());
     }
 
     @ExceptionHandler(BizException.class)
     public ResponseEntity<ApiResponse<Void>> handleBizException(BizException ex, ServerWebExchange exchange) {
-        log.warn("业务异常: code={}, path={}, msg={}", ex.getCode(), getPath(exchange), ex.getMessage());
+        log.warn("业务异常: code={}, path={}", ex.getCode(), getPath(exchange));
         ApiResponse<Void> body = ApiResponse.fail(ex.getHttpStatus(), ex.getMessage());
         return ResponseEntity.status(resolveHttpStatus(ex.getHttpStatus())).body(body);
     }
 
     @ExceptionHandler(CoreBizException.class)
     public ResponseEntity<ApiResponse<Void>> handleCoreBizException(CoreBizException ex, ServerWebExchange exchange) {
-        log.warn("Core 业务异常: code={}, path={}, msg={}", ex.getCode(), getPath(exchange), ex.getMessage());
+        log.warn("Core 业务异常: code={}, path={}", ex.getCode(), getPath(exchange));
         ApiResponse<Void> body = ApiResponse.fail(ex.getHttpStatus(), ex.getMessage());
         return ResponseEntity.status(resolveHttpStatus(ex.getHttpStatus())).body(body);
     }
@@ -72,27 +72,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RemoteTimeoutException.class)
     @ResponseStatus(HttpStatus.GATEWAY_TIMEOUT)
     public ApiResponse<Void> handleRemoteTimeout(RemoteTimeoutException ex, ServerWebExchange exchange) {
-        log.warn("远程调用超时: code={}, path={}, msg={}", ex.getCode(), getPath(exchange), ex.getMessage());
+        log.warn("远程调用超时: code={}, path={}", ex.getCode(), getPath(exchange));
         return ApiResponse.fail(ex.getHttpStatus(), ex.getMessage());
     }
 
     @ExceptionHandler(RemoteServiceException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public ApiResponse<Void> handleRemoteService(RemoteServiceException ex, ServerWebExchange exchange) {
-        log.error("远程服务内部错误: code={}, path={}, msg={}", ex.getCode(), getPath(exchange), ex.getMessage());
+        log.error("远程服务内部错误: code={}, path={}", ex.getCode(), getPath(exchange));
         return ApiResponse.fail(ex.getHttpStatus(), ex.getMessage());
     }
 
     @ExceptionHandler(CircuitBreakerOpenException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     public ApiResponse<Void> handleCircuitBreakerOpen(CircuitBreakerOpenException ex, ServerWebExchange exchange) {
-        log.warn("服务熔断: code={}, path={}, msg={}", ex.getCode(), getPath(exchange), ex.getMessage());
+        log.warn("服务熔断: code={}, path={}", ex.getCode(), getPath(exchange));
         return ApiResponse.fail(ex.getHttpStatus(), ex.getMessage());
     }
 
     @ExceptionHandler(WebPlusException.class)
     public ResponseEntity<ApiResponse<Void>> handleWebPlusException(WebPlusException ex, ServerWebExchange exchange) {
-        log.warn("框架异常: code={}, path={}, msg={}", ex.getCode(), getPath(exchange), ex.getMessage());
+        log.warn("框架异常: code={}, path={}", ex.getCode(), getPath(exchange));
         ApiResponse<Void> body = ApiResponse.fail(ex.getHttpStatus(), ex.getMessage());
         return ResponseEntity.status(resolveHttpStatus(ex.getHttpStatus())).body(body);
     }
@@ -133,7 +133,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Throwable.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<Void> handleThrowable(Throwable ex, ServerWebExchange exchange) {
-        log.error("系统异常: path={}, msg={}", getPath(exchange), ex.getMessage(), ex);
+        log.error("系统异常: path={}, exception={}",
+                getPath(exchange), ex.getClass().getSimpleName());
         return ApiResponse.fail(WebErrorCode.SYSTEM_ERROR.getHttpStatus(), "系统内部错误");
     }
 

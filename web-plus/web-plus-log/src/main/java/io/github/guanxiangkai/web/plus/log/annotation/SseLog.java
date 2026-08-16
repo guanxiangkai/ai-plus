@@ -40,7 +40,10 @@ public @interface SseLog {
     String description() default "";
 
     /**
-     * 是否记录推送内容快照（默认 false）
+     * 是否记录推送内容快照（默认 false）。
+     *
+     * <p>推送内容可能包含个人信息或业务正文；只有完成数据分级、授权与脱敏后，
+     * 才能在具体方法上显式开启。</p>
      */
     boolean saveContent() default false;
 }

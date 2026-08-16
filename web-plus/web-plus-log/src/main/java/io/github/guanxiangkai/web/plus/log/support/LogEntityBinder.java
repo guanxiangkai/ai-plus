@@ -65,7 +65,8 @@ public final class LogEntityBinder {
                     fieldName, entity.getClass().getSimpleName(),
                     field.getType().getSimpleName(), value.getClass().getSimpleName());
         } catch (Exception e) {
-            log.warn("[web-plus] LogEntityBinder: 设置字段 '{}' 失败: {}", fieldName, e.getMessage());
+            log.warn("[web-plus] LogEntityBinder: 设置字段 '{}' 失败: exception={}",
+                    fieldName, e.getClass().getSimpleName());
         }
     }
 

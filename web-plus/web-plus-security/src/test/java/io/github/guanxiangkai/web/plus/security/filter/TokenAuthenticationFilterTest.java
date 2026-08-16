@@ -85,7 +85,7 @@ class TokenAuthenticationFilterTest {
         TokenAuthenticationFilter filter = new TokenAuthenticationFilter(
                 tokenService,
                 revocationStore,
-                properties(true, List.of("127.0.0.1"), List.of("10.0.0.2")),
+                properties(true, List.of("127.0.0.1"), List.of("203.0.113.2")),
                 objectMapper
         );
         MockServerWebExchange exchange = MockServerWebExchange.from(
@@ -93,7 +93,7 @@ class TokenAuthenticationFilterTest {
                         .header(WebPlusConstants.USER_ID_HEADER, "admin")
                         .header(WebPlusConstants.USER_CLAIMS_HEADER, userClaims("admin"))
                         .header("X-Forwarded-For", "127.0.0.1")
-                        .remoteAddress(new InetSocketAddress("10.0.0.2", 8080))
+                        .remoteAddress(new InetSocketAddress("203.0.113.2", 8080))
         );
 
         CurrentUser authentication = execute(filter, exchange);
@@ -107,7 +107,7 @@ class TokenAuthenticationFilterTest {
         TokenAuthenticationFilter filter = new TokenAuthenticationFilter(
                 tokenService,
                 revocationStore,
-                properties(true, List.of("10.0.0.1"), List.of()),
+                properties(true, List.of("203.0.113.1"), List.of()),
                 objectMapper
         );
         MockServerWebExchange exchange = MockServerWebExchange.from(
@@ -115,7 +115,7 @@ class TokenAuthenticationFilterTest {
                         .header(WebPlusConstants.USER_ID_HEADER, "admin")
                         .header(WebPlusConstants.USER_CLAIMS_HEADER, encodedUserClaims("admin", "管理员"))
                         .header(WebPlusConstants.USER_CLAIMS_ENCODING_HEADER, "base64url")
-                        .remoteAddress(new InetSocketAddress("10.0.0.1", 8080))
+                        .remoteAddress(new InetSocketAddress("203.0.113.1", 8080))
         );
 
         CurrentUser authentication = execute(filter, exchange);
@@ -130,7 +130,7 @@ class TokenAuthenticationFilterTest {
         TokenAuthenticationFilter filter = new TokenAuthenticationFilter(
                 tokenService,
                 revocationStore,
-                properties(true, List.of("127.0.0.1"), List.of("10.0.0.3")),
+                properties(true, List.of("127.0.0.1"), List.of("203.0.113.3")),
                 objectMapper
         );
         MockServerWebExchange exchange = MockServerWebExchange.from(
@@ -138,7 +138,7 @@ class TokenAuthenticationFilterTest {
                         .header(WebPlusConstants.USER_ID_HEADER, "admin")
                         .header(WebPlusConstants.USER_CLAIMS_HEADER, userClaims("admin"))
                         .header("X-Forwarded-For", "127.0.0.1")
-                        .remoteAddress(new InetSocketAddress("10.0.0.2", 8080))
+                        .remoteAddress(new InetSocketAddress("203.0.113.2", 8080))
         );
 
         CurrentUser authentication = execute(filter, exchange);
@@ -151,14 +151,14 @@ class TokenAuthenticationFilterTest {
         TokenAuthenticationFilter filter = new TokenAuthenticationFilter(
                 tokenService,
                 revocationStore,
-                properties(true, List.of("10.0.0.1"), List.of()),
+                properties(true, List.of("203.0.113.1"), List.of()),
                 objectMapper
         );
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/")
                         .header(WebPlusConstants.USER_ID_HEADER, "admin")
                         .header(WebPlusConstants.USER_CLAIMS_HEADER, userClaims("admin"))
-                        .remoteAddress(new InetSocketAddress("10.0.0.1", 8080))
+                        .remoteAddress(new InetSocketAddress("203.0.113.1", 8080))
         );
 
         CurrentUser authentication = execute(filter, exchange);
@@ -172,13 +172,13 @@ class TokenAuthenticationFilterTest {
         TokenAuthenticationFilter filter = new TokenAuthenticationFilter(
                 tokenService,
                 revocationStore,
-                properties(true, List.of("10.0.0.1"), List.of()),
+                properties(true, List.of("203.0.113.1"), List.of()),
                 objectMapper
         );
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/")
                         .header(WebPlusConstants.USER_ID_HEADER, "admin")
-                        .remoteAddress(new InetSocketAddress("10.0.0.1", 8080))
+                        .remoteAddress(new InetSocketAddress("203.0.113.1", 8080))
         );
 
         CurrentUser authentication = execute(filter, exchange);
@@ -191,14 +191,14 @@ class TokenAuthenticationFilterTest {
         TokenAuthenticationFilter filter = new TokenAuthenticationFilter(
                 tokenService,
                 revocationStore,
-                properties(true, List.of("10.0.0.1"), List.of()),
+                properties(true, List.of("203.0.113.1"), List.of()),
                 objectMapper
         );
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/")
                         .header(WebPlusConstants.USER_ID_HEADER, "admin")
                         .header(WebPlusConstants.USER_CLAIMS_HEADER, userClaims("guest"))
-                        .remoteAddress(new InetSocketAddress("10.0.0.1", 8080))
+                        .remoteAddress(new InetSocketAddress("203.0.113.1", 8080))
         );
 
         CurrentUser authentication = execute(filter, exchange);
@@ -211,15 +211,15 @@ class TokenAuthenticationFilterTest {
         TokenAuthenticationFilter filter = new TokenAuthenticationFilter(
                 tokenService,
                 revocationStore,
-                properties(true, List.of("127.0.0.1"), List.of("10.0.0.2")),
+                properties(true, List.of("127.0.0.1"), List.of("203.0.113.2")),
                 objectMapper
         );
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/")
                         .header(WebPlusConstants.USER_ID_HEADER, "admin")
                         .header(WebPlusConstants.USER_CLAIMS_HEADER, userClaims("admin"))
-                        .header("X-Forwarded-For", "127.0.0.1, 192.168.1.200")
-                        .remoteAddress(new InetSocketAddress("10.0.0.2", 8080))
+                        .header("X-Forwarded-For", "127.0.0.1, 198.51.100.200")
+                        .remoteAddress(new InetSocketAddress("203.0.113.2", 8080))
         );
 
         CurrentUser authentication = execute(filter, exchange);
@@ -259,7 +259,7 @@ class TokenAuthenticationFilterTest {
                 tokenService,
                 revocationStore,
                 scopeProvider,
-                properties(true, List.of("10.0.0.1"), List.of()),
+                properties(true, List.of("203.0.113.1"), List.of()),
                 objectMapper
         );
         MockServerWebExchange exchange = MockServerWebExchange.from(
@@ -267,7 +267,7 @@ class TokenAuthenticationFilterTest {
                         .header(WebPlusConstants.USER_ID_HEADER, "admin")
                         .header(WebPlusConstants.USER_CLAIMS_HEADER,
                                 "{\"userId\":\"admin\",\"permissions\":{\"bad\":true}}")
-                        .remoteAddress(new InetSocketAddress("10.0.0.1", 8080))
+                        .remoteAddress(new InetSocketAddress("203.0.113.1", 8080))
         );
 
         CurrentUser authentication = execute(filter, exchange);

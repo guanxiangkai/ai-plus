@@ -141,7 +141,8 @@ public class DictRefresher {
             redisTemplate.convertAndSend(DictChangeListener.CHANNEL, body);
             log.debug("[web-plus] 已发布字典变更通知: channel={}, body={}", DictChangeListener.CHANNEL, body);
         } catch (Exception e) {
-            log.warn("[web-plus] 发布字典变更通知失败: {}", e.getMessage());
+            log.warn("[web-plus] 发布字典变更通知失败: exception={}",
+                    e.getClass().getSimpleName());
         }
     }
 }

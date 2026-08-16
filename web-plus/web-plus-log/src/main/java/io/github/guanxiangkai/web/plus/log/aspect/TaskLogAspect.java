@@ -61,7 +61,8 @@ public class TaskLogAspect {
         try {
             result = joinPoint.proceed();
         } catch (Throwable t) {
-            dispatch(taskLog, opCtx, user, taskName, taskType, description, params, startTime, startMs, "FAIL", t.getMessage());
+            dispatch(taskLog, opCtx, user, taskName, taskType, description, params, startTime, startMs, "FAIL",
+                    t.getClass().getSimpleName());
             throw t;
         }
 
@@ -70,13 +71,13 @@ public class TaskLogAspect {
                     .doOnSuccess(r -> dispatch(taskLog, opCtx, user, taskName, taskType, description, params,
                             startTime, startMs, "SUCCESS", null))
                     .doOnError(e -> dispatch(taskLog, opCtx, user, taskName, taskType, description, params,
-                            startTime, startMs, "FAIL", e.getMessage()));
+                            startTime, startMs, "FAIL", e.getClass().getSimpleName()));
         } else if (result instanceof Flux<?> flux) {
             return flux
                     .doOnComplete(() -> dispatch(taskLog, opCtx, user, taskName, taskType, description, params,
                             startTime, startMs, "SUCCESS", null))
                     .doOnError(e -> dispatch(taskLog, opCtx, user, taskName, taskType, description, params,
-                            startTime, startMs, "FAIL", e.getMessage()));
+                            startTime, startMs, "FAIL", e.getClass().getSimpleName()));
         } else {
             dispatch(taskLog, opCtx, user, taskName, taskType, description, params,
                     startTime, startMs, "SUCCESS", null);
@@ -91,8 +92,8 @@ public class TaskLogAspect {
         long costMs = System.currentTimeMillis() - startMs;
         LocalDateTime endTime = LocalDateTime.now();
 
-        log.info("[task] name={} type={} user={} cost={}ms status={}",
-                taskName, taskType, user != null ? user.userId() : null, costMs, status);
+        log.info("[task] name={} type={} cost={}ms status={}",
+                taskName, taskType, costMs, status);
 
         BaseLog entity = LogEntityBinder.newInstance(taskLog.entity());
         if (entity == null || taskLogHandler == null) return;
@@ -116,7 +117,8 @@ public class TaskLogAspect {
         try {
             taskLogHandler.handle(entity);
         } catch (Exception e) {
-            log.error("[web-plus] TaskLogHandler 执行异常", e);
+            log.error("[web-plus] TaskLogHandler 执行异常: exception={}",
+                    e.getClass().getSimpleName());
         }
     }
 

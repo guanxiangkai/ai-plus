@@ -58,8 +58,12 @@ public class BaseException extends RuntimeException {
     }
 
     /**
-     * 转换为 API 响应
+     * 将异常错误码、消息与可选数据转换为统一失败响应。
+     *
+     * @param <T> 调用方期望的失败响应数据类型
+     * @return 包含当前异常信息的失败响应
      */
+    @SuppressWarnings("unchecked")
     public <T> io.github.guanxiangkai.web.plus.core.model.ApiResponse<T> toApiResponse() {
         return io.github.guanxiangkai.web.plus.core.model.ApiResponse.fail(code, getMessage(), (T) data);
     }
@@ -118,4 +122,3 @@ public class BaseException extends RuntimeException {
         }
     }
 }
-

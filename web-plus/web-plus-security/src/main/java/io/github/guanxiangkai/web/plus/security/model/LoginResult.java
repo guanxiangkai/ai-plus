@@ -39,4 +39,15 @@ public record LoginResult(
                 "Bearer", user
         );
     }
+
+    /**
+     * 返回不包含访问令牌和用户详情的诊断摘要。
+     *
+     * @return 已脱敏的登录结果摘要
+     */
+    @Override
+    public String toString() {
+        return "LoginResult[accessToken=<redacted>, accessTokenExpireAt=" + accessTokenExpireAt
+                + ", tokenType=" + tokenType + ", user=<redacted>]";
+    }
 }

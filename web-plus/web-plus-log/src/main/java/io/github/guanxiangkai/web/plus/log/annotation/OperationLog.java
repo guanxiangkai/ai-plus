@@ -40,9 +40,19 @@ public @interface OperationLog {
     /** 操作描述，支持 SpEL 模板 */
     String description() default "";
 
-    /** 是否保存请求参数（默认 true） */
-    boolean saveRequestParams() default true;
+    /**
+     * 是否保存请求参数（默认 false）。
+     *
+     * <p>请求对象可能包含密码、令牌、个人信息或业务正文；只有完成字段分级与脱敏后，
+     * 才能在具体方法上显式开启。</p>
+     */
+    boolean saveRequestParams() default false;
 
-    /** 是否保存响应结果（默认 false） */
+    /**
+     * 是否保存响应结果（默认 false）。
+     *
+     * <p>响应可能包含个人信息、令牌或业务正文；只有完成数据分级、授权与脱敏后，
+     * 才能在具体方法上显式开启。</p>
+     */
     boolean saveResponseData() default false;
 }

@@ -2,6 +2,7 @@ package io.github.guanxiangkai.web.plus.core.properties;
 
 import io.github.guanxiangkai.web.plus.core.constants.AuthConstants;
 import lombok.Data;
+import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.StringUtils;
 
@@ -26,6 +27,7 @@ public class TrustedForwardProperties {
     /**
      * 透传令牌值。
      */
+    @ToString.Exclude
     private String token;
 
     public void validateConfigured(String componentName) {

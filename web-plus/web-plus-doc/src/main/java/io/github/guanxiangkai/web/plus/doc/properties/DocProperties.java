@@ -45,7 +45,7 @@ public record DocProperties(
 
     public record ContactInfo(String name, String email, String url) {
         public ContactInfo {
-            if (name == null) name = "AI Plus";
+            if (name == null) name = "guanxiangkai";
             if (email == null) email = "";
             if (url == null) url = "https://github.com/guanxiangkai/ai-plus";
         }

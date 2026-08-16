@@ -54,7 +54,8 @@ public class SseLogAspect {
         try {
             result = joinPoint.proceed();
         } catch (Throwable t) {
-            dispatch(sseLog, opCtx, user, messageType, targetType, description, null, startMs, "FAIL", t.getMessage());
+            dispatch(sseLog, opCtx, user, messageType, targetType, description, null, startMs, "FAIL",
+                    t.getClass().getSimpleName());
             throw t;
         }
 
@@ -63,13 +64,13 @@ public class SseLogAspect {
                     .doOnSuccess(r -> dispatch(sseLog, opCtx, user, messageType, targetType, description,
                             sseLog.saveContent() ? toJson(r) : null, startMs, "SUCCESS", null))
                     .doOnError(e -> dispatch(sseLog, opCtx, user, messageType, targetType, description,
-                            null, startMs, "FAIL", e.getMessage()));
+                            null, startMs, "FAIL", e.getClass().getSimpleName()));
         } else if (result instanceof Flux<?> flux) {
             return flux
                     .doOnComplete(() -> dispatch(sseLog, opCtx, user, messageType, targetType, description,
                             null, startMs, "SUCCESS", null))
                     .doOnError(e -> dispatch(sseLog, opCtx, user, messageType, targetType, description,
-                            null, startMs, "FAIL", e.getMessage()));
+                            null, startMs, "FAIL", e.getClass().getSimpleName()));
         } else {
             dispatch(sseLog, opCtx, user, messageType, targetType, description,
                     sseLog.saveContent() ? toJson(result) : null, startMs, "SUCCESS", null);
@@ -83,8 +84,8 @@ public class SseLogAspect {
                           String content, long startMs, String status, String failReason) {
         long costMs = System.currentTimeMillis() - startMs;
 
-        log.info("[sse] type={} target={} user={} cost={}ms status={}",
-                messageType, targetType, user != null ? user.userId() : null, costMs, status);
+        log.info("[sse] type={} target={} cost={}ms status={}",
+                messageType, targetType, costMs, status);
 
         BaseLog entity = LogEntityBinder.newInstance(sseLog.entity());
         if (entity == null || sseLogHandler == null) return;
@@ -106,7 +107,8 @@ public class SseLogAspect {
         try {
             sseLogHandler.handle(entity);
         } catch (Exception e) {
-            log.error("[web-plus] SseLogHandler 执行异常", e);
+            log.error("[web-plus] SseLogHandler 执行异常: exception={}",
+                    e.getClass().getSimpleName());
         }
     }
 

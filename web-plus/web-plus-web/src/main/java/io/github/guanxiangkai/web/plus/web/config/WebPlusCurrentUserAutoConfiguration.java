@@ -145,7 +145,8 @@ public class WebPlusCurrentUserAutoConfiguration {
                                 .switchIfEmpty(Mono.just(Optional.empty()));
                     })
                     .onErrorResume(IllegalStateException.class, ex -> {
-                        log.debug("[web-plus] Reactor Context 读取当前用户失败，回退至 SecurityContext: {}", ex.getMessage());
+                        log.debug("[web-plus] Reactor Context 读取当前用户失败，回退至 SecurityContext: exception={}",
+                                ex.getClass().getSimpleName());
                         return ReactiveSecurityContextHolder.getContext()
                                 .map(SecurityContext::getAuthentication)
                                 .map(this::toCurrentUser)

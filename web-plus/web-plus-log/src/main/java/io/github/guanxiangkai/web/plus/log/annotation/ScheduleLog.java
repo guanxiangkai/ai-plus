@@ -42,6 +42,10 @@ public @interface ScheduleLog {
     /** 任务描述，支持 SpEL 模板 */
     String description() default "";
 
-    /** 是否序列化方法入参作为任务参数（默认 true） */
-    boolean saveParams() default true;
+    /**
+     * 是否序列化方法入参作为任务参数（默认 false）。
+     *
+     * <p>任务参数经常包含连接配置、批次内容或个人信息，必须由调用方在完成脱敏后显式开启。</p>
+     */
+    boolean saveParams() default false;
 }

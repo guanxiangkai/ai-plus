@@ -28,12 +28,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class HeaderAuthenticationFilterTest {
 
     @Test
-    void shouldAuthenticateInternalServiceWhenTrustedTokenExistsWithoutUserId() {
+    void shouldAuthenticateInternalServiceWhenTrustedTokenAndExplicitPrincipalExist() {
         TrustedForwardProperties properties = trustedForwardProperties();
         HeaderAuthenticationFilter filter = new HeaderAuthenticationFilter(properties);
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/internal/user/findByUsername")
                         .header(properties.getHeaderName(), properties.getToken())
+                        .header(AuthConstants.HeaderConstants.USER_ID,
+                                AuthConstants.HeaderConstants.INTERNAL_SERVICE_USER_ID)
                         .build()
         );
 
@@ -57,6 +59,30 @@ class HeaderAuthenticationFilterTest {
         assertThat(authenticatedRef.get()).isTrue();
         assertThat(userContextRef.get()).isNotNull();
         assertThat(userContextRef.get().userId()).isEqualTo(AuthConstants.HeaderConstants.INTERNAL_SERVICE_USER_ID);
+    }
+
+    @Test
+    void shouldNotCreateAnIdentityFromTrustedTokenAlone() {
+        TrustedForwardProperties properties = trustedForwardProperties();
+        HeaderAuthenticationFilter filter = new HeaderAuthenticationFilter(properties);
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/auth/login")
+                        .header(properties.getHeaderName(), properties.getToken())
+                        .header(AuthConstants.HeaderConstants.VERIFIED_CLIENT_IP, "203.0.113.8")
+                        .build()
+        );
+        AtomicBoolean chainInvoked = new AtomicBoolean(false);
+        AtomicReference<String> principalRef = new AtomicReference<>();
+
+        filter.filter(exchange, webExchange -> {
+            chainInvoked.set(true);
+            return ReactiveSecurityContextHolder.getContext()
+                    .doOnNext(context -> principalRef.set(context.getAuthentication().getName()))
+                    .then();
+        }).block();
+
+        assertThat(chainInvoked).isTrue();
+        assertThat(principalRef.get()).isNull();
     }
 
     @Test

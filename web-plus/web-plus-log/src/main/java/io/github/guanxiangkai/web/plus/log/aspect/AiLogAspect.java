@@ -61,7 +61,8 @@ public class AiLogAspect {
         try {
             result = joinPoint.proceed();
         } catch (Throwable t) {
-            dispatch(aiLog, opCtx, user, provider, model, description, inputContent, null, startMs, "FAIL", t.getMessage());
+            dispatch(aiLog, opCtx, user, provider, model, description, inputContent, null, startMs, "FAIL",
+                    t.getClass().getSimpleName());
             throw t;
         }
 
@@ -70,13 +71,13 @@ public class AiLogAspect {
                     .doOnSuccess(r -> dispatch(aiLog, opCtx, user, provider, model, description, inputContent,
                             aiLog.saveOutputContent() ? toJson(r) : null, startMs, "SUCCESS", null))
                     .doOnError(e -> dispatch(aiLog, opCtx, user, provider, model, description, inputContent,
-                            null, startMs, "FAIL", e.getMessage()));
+                            null, startMs, "FAIL", e.getClass().getSimpleName()));
         } else if (result instanceof Flux<?> flux) {
             return flux
                     .doOnComplete(() -> dispatch(aiLog, opCtx, user, provider, model, description, inputContent,
                             null, startMs, "SUCCESS", null))
                     .doOnError(e -> dispatch(aiLog, opCtx, user, provider, model, description, inputContent,
-                            null, startMs, "FAIL", e.getMessage()));
+                            null, startMs, "FAIL", e.getClass().getSimpleName()));
         } else {
             dispatch(aiLog, opCtx, user, provider, model, description, inputContent,
                     aiLog.saveOutputContent() ? toJson(result) : null, startMs, "SUCCESS", null);
@@ -91,8 +92,8 @@ public class AiLogAspect {
                           long startMs, String status, String errorMessage) {
         long costMs = System.currentTimeMillis() - startMs;
 
-        log.info("[ai-call] provider={} model={} desc={} user={} cost={}ms status={}",
-                provider, model, description, user != null ? user.userId() : null, costMs, status);
+        log.info("[ai-call] provider={} model={} desc={} cost={}ms status={}",
+                provider, model, description, costMs, status);
 
         BaseLog entity = LogEntityBinder.newInstance(aiLog.entity());
         if (entity == null || aiCallLogHandler == null) return;
@@ -115,7 +116,8 @@ public class AiLogAspect {
         try {
             aiCallLogHandler.handle(entity);
         } catch (Exception e) {
-            log.error("[web-plus] AiCallLogHandler 执行异常", e);
+            log.error("[web-plus] AiCallLogHandler 执行异常: exception={}",
+                    e.getClass().getSimpleName());
         }
     }
 

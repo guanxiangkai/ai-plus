@@ -24,7 +24,8 @@ public class SpringSecurityAuditorAware implements AuditorAware<String> {
         try {
             return Optional.ofNullable(SecurityUtils.getUserId());
         } catch (Exception e) {
-            log.debug("获取审计用户 ID 失败（可能为非登录上下文）: {}", e.getMessage());
+            log.debug("获取审计用户 ID 失败（可能为非登录上下文）: exception={}",
+                    e.getClass().getSimpleName());
             return Optional.empty();
         }
     }

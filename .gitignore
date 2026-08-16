@@ -6,16 +6,10 @@
 *.log
 .DS_Store
 
-# 本地凭据、私钥与证书
+# 本地环境与凭据
 .env
 .env.*
 !.env.example
-settings.xml
-.npmrc.local
-.pypirc
-auth.json
-credentials*
-secrets*
 *.pem
 *.key
 *.p12
@@ -25,3 +19,8 @@ secrets*
 *.crt
 *.cer
 *.der
+credentials*
+secrets*
+auth.json
+.npmrc.local
+.pypirc

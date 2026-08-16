@@ -58,10 +58,10 @@ public final class DefaultExcelOperations implements ExcelOperations {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             exportToStream(outputStream, context);
-            log.info("Excel 导出成功: fileName={}, records={}", context.fileName(), context.data().size());
+            log.info("Excel 导出成功: records={}", context.data().size());
             return outputStream.toByteArray();
         } catch (Exception e) {
-            log.error("Excel 导出失败: fileName={}", context.fileName(), e);
+            log.error("Excel 导出失败: exception={}", e.getClass().getSimpleName());
             throw new ExcelException("Excel 导出失败", e);
         }
     }
@@ -92,16 +92,16 @@ public final class DefaultExcelOperations implements ExcelOperations {
             try (InputStream is = file.getInputStream()) {
                 data = importFromStream(is, dataClass);
             }
-            log.info("Excel 导入成功: fileName={}, records={}", file.getOriginalFilename(), data.size());
+            log.info("Excel 导入成功: records={}", data.size());
             return ImportResult.success(data);
         } catch (ExcelException e) {
-            log.warn("Excel 导入被拒绝: fileName={}, reason={}", file.getOriginalFilename(), e.getMessage());
+            log.warn("Excel 导入被拒绝: exception={}", e.getClass().getSimpleName());
             return ImportResult.failure(List.of(
                     ImportResult.ImportError.of(maxImportRows + 1, null, e.getMessage())
             ));
         } catch (IOException e) {
-            log.error("Excel 导入失败: fileName={}", file.getOriginalFilename(), e);
-            return ImportResult.failure(List.of(ImportResult.ImportError.of(0, null, "文件读取失败: " + e.getMessage())));
+            log.error("Excel 导入失败: exception={}", e.getClass().getSimpleName());
+            return ImportResult.failure(List.of(ImportResult.ImportError.of(0, null, "文件读取失败")));
         }
     }
 
@@ -126,9 +126,9 @@ public final class DefaultExcelOperations implements ExcelOperations {
                     (T data, AnalysisContext context) -> consumer.accept(data),
                     context -> log.debug("Excel 流式解析完成")
             )).sheet().doRead();
-            log.info("Excel 流式导入成功: fileName={}", file.getOriginalFilename());
+            log.info("Excel 流式导入成功");
         } catch (IOException e) {
-            log.error("Excel 流式导入失败: fileName={}", file.getOriginalFilename(), e);
+            log.error("Excel 流式导入失败: exception={}", e.getClass().getSimpleName());
             throw new ExcelException("Excel 流式导入失败", e);
         }
     }
@@ -141,9 +141,9 @@ public final class DefaultExcelOperations implements ExcelOperations {
         try (InputStream is = file.getInputStream()) {
             FastExcel.read(is, dataClass, new BatchDataListener<>(batchSize, handler, maxImportRows))
                     .sheet().doRead();
-            log.info("Excel 批量导入成功: fileName={}, batchSize={}", file.getOriginalFilename(), batchSize);
+            log.info("Excel 批量导入成功: batchSize={}", batchSize);
         } catch (IOException e) {
-            log.error("Excel 批量导入失败: fileName={}", file.getOriginalFilename(), e);
+            log.error("Excel 批量导入失败: exception={}", e.getClass().getSimpleName());
             throw new ExcelException("Excel 批量导入失败", e);
         }
     }

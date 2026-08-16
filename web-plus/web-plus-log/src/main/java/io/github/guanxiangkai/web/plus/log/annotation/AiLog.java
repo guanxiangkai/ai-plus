@@ -38,9 +38,19 @@ public @interface AiLog {
     /** 操作描述，支持 SpEL 模板 */
     String description() default "";
 
-    /** 是否保存输入内容（默认 false） */
+    /**
+     * 是否保存输入内容（默认 false）。
+     *
+     * <p>输入可能包含 Prompt、个人信息或业务正文；只有完成数据分级、授权与脱敏后，
+     * 才能在具体方法上显式开启。</p>
+     */
     boolean saveInputContent() default false;
 
-    /** 是否保存输出内容（默认 false） */
+    /**
+     * 是否保存输出内容（默认 false）。
+     *
+     * <p>输出可能包含模型复述的敏感内容；只有完成数据分级、授权与脱敏后，
+     * 才能在具体方法上显式开启。</p>
+     */
     boolean saveOutputContent() default false;
 }

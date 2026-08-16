@@ -1,7 +1,8 @@
 package io.github.guanxiangkai.web.plus.protection.filter;
 
-import io.github.guanxiangkai.web.plus.core.constants.AuthConstants;
+import io.github.guanxiangkai.web.plus.core.crypto.SecurityFingerprint;
 import io.github.guanxiangkai.web.plus.core.model.ApiResponse;
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.protection.properties.ApiRateLimitProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
@@ -22,7 +24,6 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
-import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.regex.Pattern;
 import tools.jackson.databind.ObjectMapper;
@@ -52,13 +53,30 @@ public class ApiRateLimitFilter implements WebFilter, Ordered {
     private final ReactiveStringRedisTemplate redisTemplate;
     private final ApiRateLimitProperties properties;
     private final ObjectMapper objectMapper;
+    private final ClientIpResolver clientIpResolver;
 
     public ApiRateLimitFilter(ReactiveStringRedisTemplate redisTemplate,
                               ApiRateLimitProperties properties,
                               ObjectMapper objectMapper) {
+        this(redisTemplate, properties, objectMapper, ClientIpResolver.directPeer());
+    }
+
+    /**
+     * 创建服务侧 API 限流器。
+     *
+     * @param redisTemplate Redis 响应式客户端
+     * @param properties 限流配置
+     * @param objectMapper JSON 序列化器
+     * @param clientIpResolver 可信客户端 IP 解析策略
+     */
+    public ApiRateLimitFilter(ReactiveStringRedisTemplate redisTemplate,
+                              ApiRateLimitProperties properties,
+                              ObjectMapper objectMapper,
+                              ClientIpResolver clientIpResolver) {
         this.redisTemplate = redisTemplate;
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @Override
@@ -70,14 +88,17 @@ public class ApiRateLimitFilter implements WebFilter, Ordered {
 
         return resolveSubject(request)
                 .flatMap(subject -> {
-                    String key = RATE_LIMIT_PREFIX + subject + ":" + request.getPath().value();
+                    String subjectFingerprint = SecurityFingerprint.sha256(subject);
+                    String pathFingerprint = SecurityFingerprint.sha256(request.getPath().value());
+                    String key = RATE_LIMIT_PREFIX + subjectFingerprint + ":" + pathFingerprint;
                     long windowSeconds = Math.max(1, properties.window().toSeconds());
                     return redisTemplate.execute(INCR_WITH_EXPIRE_SCRIPT, List.of(key), String.valueOf(windowSeconds))
                             .single()
                             .flatMap(count -> {
                                 if (count > properties.effectiveLimit()) {
                                     log.warn("[ApiRateLimit] API 限流: subject={}, path={}, count={}, limit={}/{}s",
-                                            subject, request.getPath().value(), count, properties.effectiveLimit(), windowSeconds);
+                                            subjectFingerprint, request.getPath().value(), count,
+                                            properties.effectiveLimit(), windowSeconds);
                                     return reject(exchange);
                                 }
                                 return chain.filter(exchange);
@@ -122,39 +143,13 @@ public class ApiRateLimitFilter implements WebFilter, Ordered {
     }
 
     private Mono<String> resolveSubject(ServerHttpRequest request) {
-        String userId = request.getHeaders().getFirst(AuthConstants.HeaderConstants.USER_ID);
-        if (StringUtils.hasText(userId)) {
-            return Mono.just("user:" + userId);
-        }
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
-                .filter(auth -> auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal()))
+                .filter(auth -> auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken))
                 .map(Authentication::getName)
                 .filter(StringUtils::hasText)
                 .map(authUserId -> "user:" + authUserId)
-                .defaultIfEmpty("ip:" + clientIp(request));
-    }
-
-    private String clientIp(ServerHttpRequest request) {
-        String ip = firstHeaderValue(request.getHeaders().getFirst("X-Forwarded-For"));
-        if (!StringUtils.hasText(ip)) {
-            ip = firstHeaderValue(request.getHeaders().getFirst("X-Real-IP"));
-        }
-        if (!StringUtils.hasText(ip)) {
-            InetSocketAddress remoteAddress = request.getRemoteAddress();
-            ip = remoteAddress != null && remoteAddress.getAddress() != null
-                    ? remoteAddress.getAddress().getHostAddress()
-                    : "unknown";
-        }
-        return ip;
-    }
-
-    private String firstHeaderValue(String value) {
-        if (!StringUtils.hasText(value) || "unknown".equalsIgnoreCase(value)) {
-            return null;
-        }
-        int comma = value.indexOf(',');
-        return comma >= 0 ? value.substring(0, comma).trim() : value.trim();
+                .defaultIfEmpty("ip:" + clientIpResolver.resolve(request));
     }
 
     private Mono<Void> reject(ServerWebExchange exchange) {

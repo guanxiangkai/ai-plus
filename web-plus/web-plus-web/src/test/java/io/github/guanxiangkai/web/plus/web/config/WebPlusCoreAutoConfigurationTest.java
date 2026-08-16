@@ -82,8 +82,8 @@ class WebPlusCoreAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "web-plus.api-crypto.enabled=true",
-                        "web-plus.api-crypto.request.key=reference-request-secret",
-                        "web-plus.api-crypto.response.key=reference-response-secret"
+                        "web-plus.api-crypto.request.key=example-request-secret",
+                        "web-plus.api-crypto.response.key=example-response-secret"
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(ApiCryptoService.class);
@@ -103,8 +103,8 @@ class WebPlusCoreAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "web-plus.api-crypto.enabled=true",
-                        "web-plus.api-crypto.request.key=reference-request-secret",
-                        "web-plus.api-crypto.response.key=reference-response-secret",
+                        "web-plus.api-crypto.request.key=example-request-secret",
+                        "web-plus.api-crypto.response.key=example-response-secret",
                         "web-plus.api-crypto.runtime.max-request-body-size=0B"
                 )
                 .run(context -> {

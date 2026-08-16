@@ -1,11 +1,13 @@
 package io.github.guanxiangkai.web.plus.core.config;
 
-import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
+import io.github.guanxiangkai.web.plus.core.net.TrustedProxyClientIpResolver;
+import io.github.guanxiangkai.web.plus.core.properties.ClientIpProperties;
+import io.github.guanxiangkai.web.plus.core.properties.TrustedForwardProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.context.annotation.ComponentScan;
-
-import java.util.TimeZone;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 
 /**
  * Core 模块自动配置
@@ -16,15 +18,23 @@ import java.util.TimeZone;
  * @author guanxiangkai
  * @since 1.0.0
  */
-@Slf4j
 @AutoConfiguration
-@ComponentScan(basePackages = "io.github.guanxiangkai.web.plus.core")
+@Import(JacksonConfig.class)
+@EnableConfigurationProperties({ClientIpProperties.class, TrustedForwardProperties.class})
 public class CoreAutoConfiguration {
 
-    @PostConstruct
-    public void init() {
-        // 设置系统默认时区为 Asia/Shanghai，避免使用已弃用的三字母时区ID
-        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
-        log.info("AI-Common-Core 模块已启用，系统时区设置为: {}", TimeZone.getDefault().getID());
+    /**
+     * 提供默认客户端 IP 解析策略；应用可注册同类型 Bean 覆盖。
+     *
+     * @param properties 显式可信代理配置
+     * @param trustedForwardProperties 网关可信转发令牌配置
+     * @return 客户端 IP 解析器
+     */
+    @Bean
+    @ConditionalOnMissingBean(io.github.guanxiangkai.web.plus.core.net.ClientIpResolver.class)
+    public TrustedProxyClientIpResolver clientIpResolver(
+            ClientIpProperties properties,
+            TrustedForwardProperties trustedForwardProperties) {
+        return new TrustedProxyClientIpResolver(properties, trustedForwardProperties);
     }
 }

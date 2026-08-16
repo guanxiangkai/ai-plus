@@ -7,8 +7,9 @@
 
 # ─────────────────────────── Spring 体系 ───────────────────────────
 spring-boot = "4.1.0"          # Spring Boot 4.1 正式基线；带入 Spring Framework 7.0.8 与 Spring Data 2026.0.0，Repository/事务/健康检查 ABI 需构建验证
+# Jackson 3.1 是当前 Boot 基线所在的 LTS 线；固定到已修复安全问题的 3.1.5，不跨到 3.2 非 LTS 次版本。
+jackson3 = "3.1.5"
 houbb-sensitive-word = "0.29.5" # houbb sensitive-word 高级 DFA 敏感词引擎（可选集成）
-hibernate = "7.4.5.Final"      # Hibernate ORM 7.4 最新正式补丁，供 Query 模块内部 Flush/Session 能力使用
 
 # ─────────────────────────── 工具库 ──────────────────────────────
 hutool = "5.8.47"              # hutool-crypto：国密 SM4、AES-CBC；hutool-core：通用工具
@@ -21,13 +22,12 @@ datasource-proxy = "1.11.0"      # datasource-proxy —— JDBC 代理层 SQL �
 druid = "1.2.28"              # Alibaba Druid 连接池 —— 与 HikariCP 二选一（可选）
 
 # ─────────────────────────── 测试 ────────────────────────────────
-junit = "6.1.2"                # JUnit 6.1 正式补丁线
+junit = "6.1.3"                # JUnit 6.1 最新正式补丁，统一 Jupiter 与 Platform 测试运行时
 
 # ─────────────────────────── Gradle 插件 ─────────────────────────
 lombok-plugin = "9.5.0"        # Lombok Gradle 插件
 lombok = "1.18.46"             # Lombok 编译期处理器
-versions-plugin = "0.59.0"     # Ben Manes Versions Plugin：依赖更新检查
-maven-publish-plugin = "0.37.0" # Vanniktech Maven Publish：Central Portal 上传与内存 GPG 签名
+versions-plugin = "0.61.0"     # Ben Manes Versions Plugin：依赖更新检查，不参与运行时产物
 
 
 # ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -41,6 +41,8 @@ maven-publish-plugin = "0.37.0" # Vanniktech Maven Publish：Central Portal 上�
 # ═══════════════════════════ Spring Boot 核心 ═══════════════════════════
 # BOM（依赖版本管理，不引入实际 jar）
 spring-boot-dependencies = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "spring-boot" }
+# Jackson 3 LTS 安全补丁 BOM；由所有发布模块的 api 平台约束传递给消费方。
+jackson3-bom = { group = "tools.jackson", name = "jackson-bom", version.ref = "jackson3" }
 
 # ═══════════════════════════ 数据库 ═══════════════════════════
 # JPA（阻塞式 JDBC 由虚拟线程托管，不会阻塞平台线程；版本由 Spring Boot BOM 统一管理）
@@ -56,7 +58,7 @@ spring-boot-starter-validation = { group = "org.springframework.boot", name = "s
 
 # ═══════════════════════════ Hibernate ═══════════════════════════
 # Hibernate ORM 核心（仅 Query 模块内部 Flush 脏检查实现使用；2.0 显式覆盖到最新 Final）
-hibernate-core = { group = "org.hibernate.orm", name = "hibernate-core", version.ref = "hibernate" }
+hibernate-core = { group = "org.hibernate.orm", name = "hibernate-core" }
 
 # ═══════════════════════════ Spring Boot 扩展 ═══════════════════════════
 # Spring Boot 自动装配注解（@AutoConfiguration / @ConditionalOn*；版本由 Spring Boot BOM 统一管理）
@@ -151,14 +153,8 @@ jackson-annotations = { group = "com.fasterxml.jackson.core", name = "jackson-an
 
 [bundles]
 
-# 测试全家桶（testImplementation 级别；spring-boot-starter-test 已传递引入 logback-classic）
-testing = ["spring-boot-starter-test", "junit-jupiter", "junit-platform-launcher"]
-
-# Starter 自动装配基础设施（implementation 级别）
-starter-boot-autoconfigure = ["spring-boot-autoconfigure"]
-
-# Starter JDBC 自动配置基础设施（implementation 级别）
-starter-jdbc-autoconfigure = ["spring-boot-jdbc"]
+# 测试编译依赖组；JUnit Platform Launcher 必须由构建脚本单独声明为 testRuntimeOnly。
+testing = ["spring-boot-starter-test", "junit-jupiter"]
 
 # Starter 配置元数据处理器（annotationProcessor 级别）
 starter-configuration-processor = ["spring-boot-configuration-processor"]
@@ -167,12 +163,9 @@ starter-configuration-processor = ["spring-boot-configuration-processor"]
 # JpaRepository / Pageable / EntityManager / ApplicationEventPublisher 等出现在 starter 对外类型签名中
 starter-public-api = ["spring-data-jpa", "jakarta-persistence-api", "spring-context"]
 
-# Starter 内部 Spring Core 基础设施（implementation 级别）
-# Binder / Environment / AnnotatedTypeMetadata / @Order 等仅用于 starter 内部装配实现
-starter-spring-core-internal = ["spring-core"]
-
-# Starter 内部 Bean 装配基础设施（implementation 级别）
-starter-spring-beans-internal = ["spring-beans"]
+# Starter 内部基础设施（implementation 级别）
+# JPA 与 Validation 运行时、自动配置、JDBC、Binder、Environment 和 Bean 注册能力总是共同存在。
+starter-internal = ["jakarta-validation-api", "spring-boot-starter-validation", "spring-boot-starter-data-jpa", "spring-boot-autoconfigure", "spring-boot-jdbc", "spring-core", "spring-beans"]
 
 # Query 模块公开 API（EntityManager / Pageable）
 query-public-api = ["jakarta-persistence-api", "spring-data-commons"]
@@ -189,6 +182,9 @@ datasource-aop-runtime = ["spring-aop", "aspectjweaver"]
 # Sharding 模块内部基础设施（implementation 级别）
 # @AutoConfiguration / @Bean / SpEL / AOP 运行时均仅用于 sharding 模块内部实现
 sharding-internal = ["spring-boot-autoconfigure", "spring-context", "spring-expression", "spring-aop", "aspectjweaver", "spring-data-commons", "jakarta-persistence-api"]
+
+# Sharding 配置属性的校验注解与运行时实现，二者必须共同参与配置绑定。
+sharding-validation = ["jakarta-validation-api", "spring-boot-starter-validation"]
 
 
 # field 模块可选第三方增强（compileOnly 级别）
@@ -213,4 +209,3 @@ lombok = { id = "io.freefair.lombok", version.ref = "lombok-plugin" }
 # Spring Boot Gradle 插件（bootJar / bootRun / 依赖管理）
 springboot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 versions = { id = "io.github.ben-manes.versions", version.ref = "versions-plugin" }
-maven-publish = { id = "com.vanniktech.maven.publish.base", version.ref = "maven-publish-plugin" }

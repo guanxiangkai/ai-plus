@@ -2,12 +2,14 @@ package io.github.guanxiangkai.jpa.plus.starter;
 
 import io.github.guanxiangkai.jpa.plus.starter.repository.JpaPlusRepositoryFactoryBean;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Role;
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactoryBean;
 
 /**
@@ -68,11 +70,16 @@ public class JpaPlusAutoConfiguration {
     // ─────────── Repository 工厂替换 ───────────
 
     /**
-     * 自动将 Spring Data JPA 默认的 {@link JpaRepositoryFactoryBean}
-     * 替换为 {@link JpaPlusRepositoryFactoryBean}，
-     * 使所有 Repository 自动获得 jpa-plus 增强能力（拦截器链、字段处理等）。
+     * 在 Repository Bean 实例化前，将 Spring Data JPA 默认的
+     * {@link JpaRepositoryFactoryBean} 定义替换为
+     * {@link JpaPlusRepositoryFactoryBean}，使标准 Repository 获得拦截器链、字段处理等增强能力。
+     *
+     * <p>替换条件严格匹配 Spring Data 默认工厂类名。使用方显式配置的自定义 Repository
+     * Factory 不会被覆盖；这里也不使用普通 {@code BeanPostProcessor}，避免在 Bean 已实例化后
+     * 才改变基础设施语义。</p>
      */
     @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     static BeanDefinitionRegistryPostProcessor jpaPlusRepositoryFactoryReplacer() {
         return (BeanDefinitionRegistry registry) -> {
             String target = JpaRepositoryFactoryBean.class.getName();

@@ -2,7 +2,7 @@ package io.github.guanxiangkai.web.plus.log.aspect;
 
 import io.github.guanxiangkai.web.plus.core.context.RequestContextHolder;
 import io.github.guanxiangkai.web.plus.core.spi.CurrentUserProvider;
-import io.github.guanxiangkai.web.plus.core.util.IpUtils;
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.log.annotation.LoginLog;
 import io.github.guanxiangkai.web.plus.log.entity.BaseLog;
 import io.github.guanxiangkai.web.plus.log.spi.LoginLogHandler;
@@ -32,6 +32,9 @@ public class LoginLogAspect {
     @Autowired(required = false)
     private CurrentUserProvider currentUserProvider;
 
+    @Autowired(required = false)
+    private ClientIpResolver clientIpResolver;
+
     @Around("@annotation(loginLog)")
     public Object around(ProceedingJoinPoint joinPoint, LoginLog loginLog) throws Throwable {
         // ── 在请求线程预先捕获不可变上下文（避免响应式回调中 ThreadLocal 不可见）
@@ -41,7 +44,7 @@ public class LoginLogAspect {
 
         if (exchange != null) {
             ServerHttpRequest request = exchange.getRequest();
-            ip = IpUtils.getClientIp(request);
+            ip = resolver().resolve(request);
             userAgent = request.getHeaders().getFirst("User-Agent");
         }
 
@@ -60,7 +63,8 @@ public class LoginLogAspect {
         try {
             result = joinPoint.proceed();
         } catch (Throwable t) {
-            dispatch(loginLog, traceId, userId, username, tenantId, finalIp, finalUserAgent, action, "FAIL", t.getMessage());
+            dispatch(loginLog, traceId, userId, username, tenantId, finalIp, finalUserAgent, action, "FAIL",
+                    t.getClass().getSimpleName());
             throw t;
         }
 
@@ -69,7 +73,7 @@ public class LoginLogAspect {
                     .doOnSuccess(r -> dispatch(loginLog, traceId, userId, username, tenantId,
                             finalIp, finalUserAgent, action, "SUCCESS", null))
                     .doOnError(e -> dispatch(loginLog, traceId, userId, username, tenantId,
-                            finalIp, finalUserAgent, action, "FAIL", e.getMessage()));
+                            finalIp, finalUserAgent, action, "FAIL", e.getClass().getSimpleName()));
         }
 
         dispatch(loginLog, traceId, userId, username, tenantId, finalIp, finalUserAgent, action, "SUCCESS", null);
@@ -79,8 +83,7 @@ public class LoginLogAspect {
     private void dispatch(LoginLog loginLog, String traceId, String userId, String username,
                           String tenantId, String clientIp, String userAgent,
                           String action, String status, String errorMsg) {
-        log.info("[login] action={} user={} ip={} traceId={} status={}",
-                action, username, clientIp, traceId, status);
+        log.info("[login] action={} traceId={} status={}", action, traceId, status);
 
         BaseLog entity = LogEntityBinder.newInstance(loginLog.entity());
         if (entity == null || loginLogHandler == null) return;
@@ -93,7 +96,8 @@ public class LoginLogAspect {
         try {
             loginLogHandler.handle(entity);
         } catch (Exception e) {
-            log.error("[web-plus] LoginLogHandler 执行异常", e);
+            log.error("[web-plus] LoginLogHandler 执行异常: exception={}",
+                    e.getClass().getSimpleName());
         }
     }
 
@@ -120,13 +124,15 @@ public class LoginLogAspect {
     }
 
     /**
-     * 从方法参数中提取用户名
-     * <p>优先级：String 类型参数 → DTO.getUsername() → DTO.username() → "unknown"</p>
+     * 从方法参数中提取显式用户名属性。
+     *
+     * <p>不能把任意 {@link String} 参数推断为用户名：登出令牌、刷新令牌等认证凭据也常以
+     * 字符串传入，这种猜测会把秘密值写入登录日志。这里只接受 DTO 的
+     * {@code getUsername()} 或 Record 的 {@code username()} 访问器。</p>
      */
     private String extractUsername(ProceedingJoinPoint jp) {
         for (Object arg : jp.getArgs()) {
             if (arg == null || arg instanceof ServerWebExchange) continue;
-            if (arg instanceof String s) return s;
             // 尝试 getter 方法（如 LoginDTO.getUsername()）
             try {
                 var val = arg.getClass().getMethod("getUsername").invoke(arg);
@@ -141,5 +147,9 @@ public class LoginLogAspect {
             }
         }
         return "unknown";
+    }
+
+    private ClientIpResolver resolver() {
+        return clientIpResolver != null ? clientIpResolver : ClientIpResolver.directPeer();
     }
 }

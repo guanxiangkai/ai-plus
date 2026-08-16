@@ -8,17 +8,17 @@
 - 复用现有架构；清理重复、无效入口、临时代码，不为最小 diff 牺牲质量。
 - 改代码同步类型、配置、测试、mock、文档、示例和调用方。
 - 后端查鉴权、租户、事务、幂等、并发、分页、超时、日志脱敏；前端补齐 loading/empty/error/disabled/权限/窄屏。
-- 依赖、构建和测试在 GitHub 托管的 Linux CI 环境执行；本地只保存和编辑源码。
+- 依赖、构建、测试、运行都在满足项目版本基线的 Linux 环境执行。
 - 交付说明改动、验证、风险；没跑的测试不能说通过。
 - 重复错误写回 `AGENTS.md`；确定性规则沉淀为测试、lint、hook、CI 或 skill。
 
 ## 核心原则
 
-- 这是独立的 Spring Boot 4 / WebFlux 基础框架项目，不属于任何具体业务系统。
+- 这是独立的 Spring Boot 4 / WebFlux 基础框架项目，不属于任何特定业务产品。
 - 目标是像 `jpa-plus`、`redis-plus` 一样形成可发布、可按需引入、边界清晰的模块化框架。
-- 对外集成契约是 Maven Central 坐标 `io.github.guanxiangkai:web-plus-*`；联合开发使用 Gradle composite build 将同坐标替换为本仓源码。
+- 对外集成契约是 GitHub Packages 坐标 `io.github.guanxiangkai:web-plus-*`；联合开发使用 Gradle composite build 将同坐标替换为本仓源码。
 - 普通模块暴露 API、注解、SPI、基础模型和可复用类型；starter 负责自动装配、条件 Bean、运行时过滤器和切面。
-- 不把任何业务系统的私有语义、数据库表、配置中心数据、服务名、租户规则或具体接口调用沉淀进本项目。
+- 不把产品私有业务语义、数据库表、配置中心数据、服务名、租户规则或具体接口调用沉淀进本项目。
 - 直接维护唯一有效契约，不提供别名、双实现、静默降级或已弃用代理。调整契约时一次性同步所有调用方、文档、测试和示例。
 - 用户用中文提问时，使用中文回复。
 
@@ -45,14 +45,14 @@
 
 ## 发布版本与分支治理
 
-- Web Plus 位于 `ai-plus` monorepo，发布 Group 为 `io.github.guanxiangkai`，制品仓库为 Maven Central。
+- Web Plus 位于 `ai-plus` monorepo，发布 Group 为 `io.github.guanxiangkai`，公共制品发布到 Maven Central。
 - 每个模块独立维护版本，版本唯一记录在 monorepo 根目录 `gradle/module-versions.properties`。
 - Web Plus 对 JPA Plus、Redis Plus 的版本直接读取同一权威版本文件；根 composite build 将 Maven 坐标替换为同仓源码。
 - 每次修改都必须先判断版本增量：
   - `PATCH`：兼容修复、文档/AGENTS/构建元数据调整、内部实现优化。
   - `MINOR`：兼容新增公开 API、配置项、模块能力、自动配置或扩展点。
   - `MAJOR`：破坏性 API/SPI、模块名、groupId/artifactId、JDK/Spring 基线或默认行为变化。
-- 当前公开基线只维护受保护的 `main`；后续变更通过功能分支和 Pull Request 进入 `main`。
+- 分支按 monorepo 的 `feature/* -> dev -> test -> main` 统一晋级。
 
 ## 常用命令
 

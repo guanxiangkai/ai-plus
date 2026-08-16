@@ -40,13 +40,9 @@ public class ApiCryptoService {
     public static final String CRYPTO_QUERY_PARAM = "__api_crypto";
 
     private static final String VERSION = "2";
-    private static final String SM4_KDF_DOMAIN = String.join(
-            "-", "WebPlus", "SM4", "Key", "V" + VERSION
-    );
-    private static final String SM3_MAC_KDF_DOMAIN = String.join(
-            "-", "WebPlus", "SM3", "Mac", "Key", "V" + VERSION
-    );
-    private static final String SM4_TAG_CONTEXT = "WebPlus-SM4-CBC-SM3-V2";
+    private static final String SM4_KDF_DOMAIN = "web-plus:api-crypto:sm4:kdf:v2";
+    private static final String SM3_MAC_DOMAIN = "web-plus:api-crypto:sm3:mac:v2";
+    private static final String SM4_TAG_DOMAIN = "web-plus:api-crypto:sm4-cbc-sm3:tag:v2";
     private static final int AES_GCM_TAG_BITS = 128;
 
     private final ApiCryptoProperties properties;
@@ -263,11 +259,11 @@ public class ApiCryptoService {
     }
 
     private String deriveSm3MacKey(String secret, byte[] salt) {
-        return SmUtil.sm3(String.join("\n", SM3_MAC_KDF_DOMAIN, secret, HexUtil.encodeHexStr(salt)));
+        return SmUtil.sm3(String.join("\n", SM3_MAC_DOMAIN, secret, HexUtil.encodeHexStr(salt)));
     }
 
     private String calculateSm3Tag(String ciphertextHex, String macKeyHex, String keyId, String iv, String salt) {
-        String signText = String.join("\n", SM4_TAG_CONTEXT, keyId, iv, salt, ciphertextHex);
+        String signText = String.join("\n", SM4_TAG_DOMAIN, keyId, iv, salt, ciphertextHex);
         return SmUtil.hmacSm3(HexUtil.decodeHex(macKeyHex)).digestHex(signText, StandardCharsets.UTF_8);
     }
 

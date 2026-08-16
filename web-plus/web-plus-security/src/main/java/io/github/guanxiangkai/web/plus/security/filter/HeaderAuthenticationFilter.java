@@ -81,22 +81,17 @@ public class HeaderAuthenticationFilter implements WebFilter {
         String userId = request.getHeaders().getFirst(AuthConstants.HeaderConstants.USER_ID);
         String forwardedToken = request.getHeaders().getFirst(trustedForwardProperties.getHeaderName());
 
-        if (!StringUtils.hasText(userId) && !StringUtils.hasText(forwardedToken)) {
+        if (!StringUtils.hasText(userId)) {
             return chain.filter(exchange);
         }
 
         if (!trustedForwardProperties.matches(forwardedToken)) {
-            log.warn("拒绝未受信任的身份透传请求: path={}, remote={}, userId={}",
-                    request.getURI().getPath(),
-                    request.getRemoteAddress(),
-                    userId);
+            log.warn("拒绝未受信任的身份透传请求: path={}", request.getURI().getPath());
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
 
-        String effectiveUserId = StringUtils.hasText(userId)
-                ? userId
-                : AuthConstants.HeaderConstants.INTERNAL_SERVICE_USER_ID;
+        String effectiveUserId = userId;
 
         // 解析 Claims
         Map<String, Object> claims = new HashMap<>();
@@ -108,7 +103,7 @@ public class HeaderAuthenticationFilter implements WebFilter {
                 JSONObject json = JSONUtil.parseObj(claimsJson);
                 claims.putAll(json);
             } catch (Exception e) {
-                log.warn("解析 X-User-Claims 失败: {}", e.getMessage());
+                log.warn("解析 X-User-Claims 失败: exception={}", e.getClass().getSimpleName());
             }
         }
 
@@ -136,11 +131,10 @@ public class HeaderAuthenticationFilter implements WebFilter {
         );
         authentication.setDetails(webPlusCurrentUser != null ? webPlusCurrentUser : claims);
 
-        log.debug("下游服务认证（请求头）: userId={}, tenantId={}", effectiveUserId, tenantId);
-        log.debug("下游服务认证详情: userId={}, superAdmin={}, roles={}, permissionCount={}",
-                effectiveUserId,
+        log.debug("下游服务认证（请求头）: path={}, superAdmin={}, roleCount={}, permissionCount={}",
+                request.getURI().getPath(),
                 userContext.superAdmin(),
-                userContext.roles(),
+                userContext.roles().size(),
                 userContext.permissions().size());
 
         return chain.filter(exchange)
@@ -234,7 +228,8 @@ public class HeaderAuthenticationFilter implements WebFilter {
                 );
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                 if (failureLogged.compareAndSet(false, true)) {
-                    log.warn("构建 web-plus CurrentUser 失败: {}", e.getMessage());
+                    log.warn("构建 web-plus CurrentUser 失败: exception={}",
+                            e.getClass().getSimpleName());
                 }
                 return null;
             }
@@ -259,7 +254,8 @@ public class HeaderAuthenticationFilter implements WebFilter {
             } catch (ClassNotFoundException e) {
                 return null;
             } catch (NoSuchMethodException e) {
-                log.warn("初始化 web-plus CurrentUser 桥接失败: {}", e.getMessage());
+                log.warn("初始化 web-plus CurrentUser 桥接失败: exception={}",
+                        e.getClass().getSimpleName());
                 return null;
             }
         }

@@ -19,17 +19,11 @@ dependencies {
     // Starter 自身自动装配代码直接使用的运行时实现依赖
     implementation(libs.bundles.starter.impl.support)
 
-    // 自动配置中创建 JacksonValueSerializer Bean 需要 ObjectMapper 类型
-    compileOnly(libs.jackson.databind)
-
-    // 配置属性 @Validated 约束注解（JSR-303 API；实际校验器由用户应用提供）
-    compileOnly(libs.jakarta.validation.api)
+    // Jackson 序列化 Bean 与配置属性校验只作为 Starter 编译契约，由最终应用提供运行时实现。
+    compileOnly(libs.bundles.starter.compileOnly)
 
     // 配置元数据处理器（生成 IDE 配置提示）
     annotationProcessor(libs.spring.boot.configuration.processor)
 
-    testImplementation(libs.jackson.databind)
-    testImplementation(libs.redisson)
-    testImplementation(libs.testcontainers.junit.jupiter)
-    testImplementation(libs.archunit.junit5)
+    testImplementation(libs.bundles.starter.testing)
 }

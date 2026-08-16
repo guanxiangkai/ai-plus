@@ -51,17 +51,17 @@ import java.util.List;
  *         max-lifetime: 1800000
  *       datasource:
  *         master:
- *           url: jdbc:mysql://localhost:3306/master_db
- *           username: root
- *           password: ${MASTER_DB_PASSWORD}
+ *           url: ${APP_PRIMARY_DB_URL}
+ *           username: ${APP_PRIMARY_DB_USERNAME}
+ *           password: ${APP_PRIMARY_DB_PASSWORD}
  *         slave_1:
- *           url: jdbc:mysql://localhost:3306/slave1_db
- *           username: root
- *           password: ${REPLICA_DB_PASSWORD}
+ *           url: ${APP_REPLICA_DB_URL}
+ *           username: ${APP_REPLICA_DB_USERNAME}
+ *           password: ${APP_REPLICA_DB_PASSWORD}
  *         pg_db:
- *           url: jdbc:postgresql://localhost:5432/pg_db
- *           username: postgres
- *           password: ${ANALYTICS_DB_PASSWORD}
+ *           url: ${APP_ANALYTICS_DB_URL}
+ *           username: ${APP_ANALYTICS_DB_USERNAME}
+ *           password: ${APP_ANALYTICS_DB_PASSWORD}
  *       refresh:
  *         enabled: true
  *         interval: 30s

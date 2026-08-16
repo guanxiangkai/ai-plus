@@ -1,8 +1,10 @@
 package io.github.guanxiangkai.web.plus.protection.autoconfigure;
 
 import io.github.guanxiangkai.web.plus.protection.filter.DebounceFilter;
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.protection.properties.DebounceProperties;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -30,8 +32,10 @@ public class DebounceAutoConfiguration {
     @ConditionalOnProperty(prefix = "web-plus.debounce", name = "enabled", havingValue = "true", matchIfMissing = true)
     public DebounceFilter debounceFilter(ReactiveStringRedisTemplate redisTemplate,
                                          DebounceProperties debounceProperties,
-                                         ObjectMapper objectMapper) {
+                                         ObjectMapper objectMapper,
+                                         ObjectProvider<ClientIpResolver> clientIpResolver) {
         log.info("[web-plus] API 防抖过滤器已启用（窗口={}）", debounceProperties.duration());
-        return new DebounceFilter(redisTemplate, debounceProperties, objectMapper);
+        return new DebounceFilter(redisTemplate, debounceProperties, objectMapper,
+                clientIpResolver.getIfAvailable(ClientIpResolver::directPeer));
     }
 }

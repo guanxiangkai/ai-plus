@@ -83,6 +83,26 @@ class JwtTokenServiceTest {
         assertThat(tokenService.parseCurrentUser(refreshToken)).isEmpty();
     }
 
+    @Test
+    void rejectsLegacyTokensWithoutExplicitUseAsCurrentUserCredentials() {
+        JwtTokenService tokenService = new JwtTokenService(
+                properties("c6Y8!rV2z@pM5#tQ9$wX3&kL7*eN1%aD4^hJ", List.of("127.0.0.1"))
+        );
+
+        SecretKey secretKey = Keys.hmacShaKeyFor(
+                "c6Y8!rV2z@pM5#tQ9$wX3&kL7*eN1%aD4^hJ".getBytes(StandardCharsets.UTF_8));
+        Date now = new Date();
+        String untypedToken = Jwts.builder()
+                .subject("u1001")
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + 60_000L))
+                .signWith(secretKey)
+                .compact();
+
+        assertThat(tokenService.parseToken(untypedToken)).isPresent();
+        assertThat(tokenService.parseCurrentUser(untypedToken)).isEmpty();
+    }
+
     private AuthProperties properties(String jwtSecret, List<String> trustedIps) {
         return new AuthProperties(
                 true,

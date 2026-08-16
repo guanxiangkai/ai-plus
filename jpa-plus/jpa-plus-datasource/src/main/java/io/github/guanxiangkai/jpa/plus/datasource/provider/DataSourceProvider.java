@@ -25,8 +25,8 @@ import java.util.List;
  *     @Override
  *     public List<DataSourceDefinition> provide() {
  *         return List.of(
- *             DataSourceDefinition.of("slave", slaveUrl, user, pwd),
- *             DataSourceDefinition.of("pg", pgUrl, pgUser, pgPwd)
+ *             DataSourceDefinition.of("replica", replicaUrl, replicaUsername, replicaPassword),
+ *             DataSourceDefinition.of("analytics", analyticsUrl, analyticsUsername, analyticsPassword)
  *         );
  *     }
  * }

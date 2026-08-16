@@ -106,14 +106,14 @@ spring:
 
       datasource:
         master:
-          url: jdbc:mysql://localhost:3306/app_master?useSSL=false&serverTimezone=Asia/Shanghai
-          username: root
-          password: ${MASTER_DB_PASSWORD}
+          url: ${APP_PRIMARY_DB_URL}
+          username: ${APP_PRIMARY_DB_USERNAME}
+          password: ${APP_PRIMARY_DB_PASSWORD}
           driver-class-name: com.mysql.cj.jdbc.Driver
         slave_1:
-          url: jdbc:mysql://localhost:3306/app_slave_1?useSSL=false&serverTimezone=Asia/Shanghai
-          username: root
-          password: ${REPLICA_DB_PASSWORD}
+          url: ${APP_REPLICA_DB_URL}
+          username: ${APP_REPLICA_DB_USERNAME}
+          password: ${APP_REPLICA_DB_PASSWORD}
           driver-class-name: com.mysql.cj.jdbc.Driver
 
       refresh:

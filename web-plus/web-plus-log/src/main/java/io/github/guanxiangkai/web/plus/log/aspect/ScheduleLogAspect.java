@@ -50,18 +50,21 @@ public class ScheduleLogAspect {
         try {
             result = joinPoint.proceed();
         } catch (Throwable t) {
-            dispatch(scheduleLog, jobName, description, params, startTime, startMs, node, "FAIL", t.getMessage());
+            dispatch(scheduleLog, jobName, description, params, startTime, startMs, node, "FAIL",
+                    t.getClass().getSimpleName());
             throw t;
         }
 
         if (result instanceof Mono<?> mono) {
             return mono
                     .doOnSuccess(r -> dispatch(scheduleLog, jobName, description, params, startTime, startMs, node, "SUCCESS", null))
-                    .doOnError(e -> dispatch(scheduleLog, jobName, description, params, startTime, startMs, node, "FAIL", e.getMessage()));
+                    .doOnError(e -> dispatch(scheduleLog, jobName, description, params, startTime, startMs, node,
+                            "FAIL", e.getClass().getSimpleName()));
         } else if (result instanceof Flux<?> flux) {
             return flux
                     .doOnComplete(() -> dispatch(scheduleLog, jobName, description, params, startTime, startMs, node, "SUCCESS", null))
-                    .doOnError(e -> dispatch(scheduleLog, jobName, description, params, startTime, startMs, node, "FAIL", e.getMessage()));
+                    .doOnError(e -> dispatch(scheduleLog, jobName, description, params, startTime, startMs, node,
+                            "FAIL", e.getClass().getSimpleName()));
         } else {
             dispatch(scheduleLog, jobName, description, params, startTime, startMs, node, "SUCCESS", null);
             return result;
@@ -96,7 +99,8 @@ public class ScheduleLogAspect {
         try {
             scheduleLogHandler.handle(entity);
         } catch (Exception e) {
-            log.error("[web-plus] ScheduleLogHandler 执行异常", e);
+            log.error("[web-plus] ScheduleLogHandler 执行异常: exception={}",
+                    e.getClass().getSimpleName());
         }
     }
 

@@ -14,7 +14,7 @@ import io.github.guanxiangkai.redis.plus.core.invoke.InvocationKeyResolver;
  * <pre>
  *   "user:42:api:order:create"      → 用户级别限流
  *   "api:order:create"              → 接口级别限流
- *   "ip:203.0.113.1:api:query"     → IP 级别限流
+ *   "ip:203.0.113.10:api:query"    → IP 级别限流
  * </pre>
  */
 @FunctionalInterface

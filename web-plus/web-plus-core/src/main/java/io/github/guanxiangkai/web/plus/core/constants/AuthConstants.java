@@ -21,17 +21,17 @@ public final class AuthConstants {
     public static final class TokenConstants {
 
         /**
-         * Token缓存名称
+         * 当前访问令牌指纹缓存名称，完整键为 {@code auth:token:{userId}}。
          */
         public static final String TOKEN_CACHE = "auth:token";
 
         /**
-         * 刷新Token缓存名称
+         * 当前刷新令牌指纹缓存名称，完整键为 {@code auth:refresh:{userId}}。
          */
         public static final String REFRESH_TOKEN_CACHE = "auth:refresh";
 
         /**
-         * Token黑名单缓存名称
+         * Token 指纹黑名单缓存名称，完整键为 {@code auth:blacklist:{sha256}}。
          */
         public static final String BLACKLIST_CACHE = "auth:blacklist";
 
@@ -103,6 +103,13 @@ public final class AuthConstants {
          * 网关/内部服务到下游服务的受信任转发令牌请求头
          */
         public static final String TRUSTED_FORWARD_TOKEN = "X-Trusted-Forward-Token";
+
+        /**
+         * 可信网关解析并覆盖的客户端 IP 请求头。
+         *
+         * <p>下游只有在同时校验可信转发令牌后才能使用此值。</p>
+         */
+        public static final String VERIFIED_CLIENT_IP = "X-Verified-Client-Ip";
 
         /**
          * 内部服务调用使用的固定主体标识。

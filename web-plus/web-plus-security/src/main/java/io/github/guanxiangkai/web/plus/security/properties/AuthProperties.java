@@ -90,4 +90,24 @@ public record AuthProperties(
                 })
                 .toList();
     }
+
+    /**
+     * 返回不包含 JWT 密钥的配置摘要。
+     *
+     * @return 已脱敏的认证配置摘要
+     */
+    @Override
+    public String toString() {
+        return "AuthProperties[enabled=" + enabled
+                + ", mode=" + mode
+                + ", tokenHeader=" + tokenHeader
+                + ", tokenPrefix=" + tokenPrefix
+                + ", jwtSecret=<redacted>"
+                + ", accessTokenExpireMs=" + accessTokenExpireMs
+                + ", singleLogin=" + singleLogin
+                + ", permitPaths=" + permitPaths
+                + ", gatewayPassthroughEnabled=" + gatewayPassthroughEnabled
+                + ", gatewayTrustedIps=" + gatewayTrustedIps
+                + ", gatewayTrustedProxyIps=" + gatewayTrustedProxyIps + ']';
+    }
 }

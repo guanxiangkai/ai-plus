@@ -11,8 +11,7 @@ dependencies {
     api(libs.bundles.ratelimit.public.api)
 
     // Bucket4j 是本地 TOKEN_BUCKET 后端，Redisson 是分布式 TOKEN_BUCKET 后端
-    implementation(libs.bucket4j.core)
-    implementation(libs.redisson)
+    implementation(libs.bundles.ratelimit.strategy.backends)
 
     // 切面实现依赖 AspectJ
     compileOnly(libs.aspectjweaver)

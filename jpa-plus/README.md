@@ -100,14 +100,14 @@ jpa-plus-starter      Spring Boot 自动装配入口（含审计、拦截器、�
 |-------------|-----------------------------|
 | JDK         | 25+                         |
 | Spring Boot | 4.1.0+                      |
-| Gradle      | 9.5+                        |
+| Gradle      | 9.7.0+                      |
 
 ### 推荐方式：Starter
 
 ```kotlin
 // build.gradle.kts
 dependencies {
-  implementation("io.github.guanxiangkai:jpa-plus-starter:2.0.1")
+  implementation("io.github.guanxiangkai:jpa-plus-starter:2.1.1")
 }
 ```
 
@@ -116,13 +116,13 @@ dependencies {
 ```kotlin
 // build.gradle.kts
 dependencies {
-  implementation("io.github.guanxiangkai:jpa-plus-core:1.0.1")
-  implementation("io.github.guanxiangkai:jpa-plus-query:1.0.1")
-  implementation("io.github.guanxiangkai:jpa-plus-field:1.0.1")
-  implementation("io.github.guanxiangkai:jpa-plus-interceptor:1.0.1")
-  implementation("io.github.guanxiangkai:jpa-plus-audit:1.0.2")
-  implementation("io.github.guanxiangkai:jpa-plus-datasource:1.0.1")
-  implementation("io.github.guanxiangkai:jpa-plus-sharding:1.0.1")
+  implementation("io.github.guanxiangkai:jpa-plus-core:1.0.2")
+  implementation("io.github.guanxiangkai:jpa-plus-query:1.0.2")
+  implementation("io.github.guanxiangkai:jpa-plus-field:1.0.2")
+  implementation("io.github.guanxiangkai:jpa-plus-interceptor:1.0.2")
+  implementation("io.github.guanxiangkai:jpa-plus-audit:1.0.3")
+  implementation("io.github.guanxiangkai:jpa-plus-datasource:1.0.2")
+  implementation("io.github.guanxiangkai:jpa-plus-sharding:1.1.1")
 }
 ```
 
@@ -161,8 +161,8 @@ dependencies {
 
     // 字段治理第三方增强
     implementation("com.github.houbb:sensitive-word:0.29.5")
-    implementation("cn.hutool:hutool-crypto:5.8.46")
-    implementation("cn.hutool:hutool-core:5.8.46")
+    implementation("cn.hutool:hutool-crypto:5.8.47")
+    implementation("cn.hutool:hutool-core:5.8.47")
 }
 ```
 
@@ -175,9 +175,9 @@ dependencies {
 ```yaml
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/demo
-    username: root
-    password: ${DB_PASSWORD}
+    url: ${APP_DB_URL}
+    username: ${APP_DB_USERNAME}
+    password: ${APP_DB_PASSWORD}
 
 jpa-plus:
   debug:
@@ -194,13 +194,13 @@ spring:
       strict: true
       datasource:
         master:
-          url: jdbc:mysql://localhost:3306/master_db
-          username: root
-          password: ${MASTER_DB_PASSWORD}
+          url: ${APP_PRIMARY_DB_URL}
+          username: ${APP_PRIMARY_DB_USERNAME}
+          password: ${APP_PRIMARY_DB_PASSWORD}
         slave_1:
-          url: jdbc:mysql://localhost:3306/slave_db
-          username: root
-          password: ${REPLICA_DB_PASSWORD}
+          url: ${APP_REPLICA_DB_URL}
+          username: ${APP_REPLICA_DB_USERNAME}
+          password: ${APP_REPLICA_DB_PASSWORD}
 ```
 
 ### 3）加密密钥配置
@@ -230,7 +230,7 @@ jpa-plus:
         sharding-key-field: userId
 ```
 
-> `cross-shard-policy` 默认推荐 `REJECT`。  
+> `cross-shard-policy` 默认推荐 `REJECT`。
 > 若需要分布式事务，可切换为 `SEATA`，并由业务方通过 `DataSourcePostProcessor` SPI 自行接入具体实现。
 
 ---
@@ -250,6 +250,11 @@ public interface UserRepository extends JpaPlusRepository<User, Long> {
 标准 `delete` 系列方法逻辑删除，未标注该注解的实体仍执行 Spring Data JPA 的物理删除。
 为防止批量 SQL 绕过逻辑删除，带 `@LogicDelete` 的实体不支持 `DeleteSpecification` 和
 `DeleteWrapper` 批量删除；请先查询实体后调用 `delete` 或 `deleteAll`。
+
+Repository 工厂接管属于 Bean 定义阶段的基础设施行为：starter 使用静态、
+`ROLE_INFRASTRUCTURE` 的 `BeanDefinitionRegistryPostProcessor`，并且只替换精确匹配的
+Spring Data 默认工厂定义。业务显式配置的自定义 Repository 工厂不会被覆盖；框架不注册
+面向全部 Bean 的通用 `BeanPostProcessor`。
 
 ```java
 var users = userRepository.list(
@@ -751,7 +756,7 @@ spring:
 
 ### 分布式事务 SPI 扩展
 
-`jpa-plus-sharding` 不内置具体分布式事务实现。  
+`jpa-plus-sharding` 不内置具体分布式事务实现。
 若业务需要跨分片事务，推荐做法：
 
 1. 配置 `jpa-plus.sharding.cross-shard-policy=SEATA`

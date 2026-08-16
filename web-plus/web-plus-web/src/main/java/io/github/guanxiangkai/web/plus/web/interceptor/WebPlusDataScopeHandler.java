@@ -25,7 +25,7 @@ public class WebPlusDataScopeHandler implements DataScopeHandler {
             if (SecurityUtils.isSuperAdmin()) return null;
             return SecurityUtils.getUserId();
         } catch (Exception e) {
-            log.debug("获取用户 ID 失败: {}", e.getMessage());
+            log.debug("获取用户 ID 失败: exception={}", e.getClass().getSimpleName());
             return null;
         }
     }
@@ -36,7 +36,7 @@ public class WebPlusDataScopeHandler implements DataScopeHandler {
             if (SecurityUtils.isSuperAdmin()) return null;
             return SecurityUtils.getDeptId();
         } catch (Exception e) {
-            log.debug("获取部门 ID 失败: {}", e.getMessage());
+            log.debug("获取部门 ID 失败: exception={}", e.getClass().getSimpleName());
             return null;
         }
     }
@@ -48,7 +48,7 @@ public class WebPlusDataScopeHandler implements DataScopeHandler {
             Set<String> deptIds = SecurityUtils.getDeptIds();
             return deptIds.isEmpty() ? null : deptIds;
         } catch (Exception e) {
-            log.debug("获取部门 ID 集合失败: {}", e.getMessage());
+            log.debug("获取部门 ID 集合失败: exception={}", e.getClass().getSimpleName());
             return null;
         }
     }

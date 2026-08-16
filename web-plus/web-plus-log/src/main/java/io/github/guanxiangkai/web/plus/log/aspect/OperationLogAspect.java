@@ -5,7 +5,7 @@ import io.github.guanxiangkai.web.plus.core.context.CurrentUserHolder;
 import io.github.guanxiangkai.web.plus.core.context.RequestContext;
 import io.github.guanxiangkai.web.plus.core.context.RequestContextHolder;
 import io.github.guanxiangkai.web.plus.core.spi.CurrentUserProvider;
-import io.github.guanxiangkai.web.plus.core.util.IpUtils;
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.core.util.SafeSpelTemplateEvaluator;
 import io.github.guanxiangkai.web.plus.log.annotation.OperationLog;
 import io.github.guanxiangkai.web.plus.log.context.OperationLogContext;
@@ -47,6 +47,9 @@ public class OperationLogAspect {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired(required = false)
+    private ClientIpResolver clientIpResolver;
 
     @Around("@annotation(opLog)")
     public Object around(ProceedingJoinPoint joinPoint, OperationLog opLog) throws Throwable {
@@ -103,7 +106,7 @@ public class OperationLogAspect {
                             opLog.saveResponseData() ? toJson(r) : null))
                     .doOnError(e -> record(opLog, operationId, module, typeCode, description,
                             requestParams, exchange, user, reqCtx, startTime, "FAIL",
-                            e.getMessage(), null));
+                            e.getClass().getSimpleName(), null));
         });
     }
 
@@ -138,7 +141,7 @@ public class OperationLogAspect {
                             requestParams, exchange, user, reqCtx, startTime, "SUCCESS", null, null))
                     .doOnError(e -> record(opLog, operationId, module, typeCode, description,
                             requestParams, exchange, user, reqCtx, startTime, "FAIL",
-                            e.getMessage(), null));
+                            e.getClass().getSimpleName(), null));
         });
     }
 
@@ -166,7 +169,7 @@ public class OperationLogAspect {
         } catch (Throwable t) {
             OperationLogContext.clear();
             record(opLog, operationId, module, typeCode, description, requestParams,
-                    exchange, user, reqCtx, startTime, "FAIL", t.getMessage(), null);
+                    exchange, user, reqCtx, startTime, "FAIL", t.getClass().getSimpleName(), null);
             throw t;
         }
 
@@ -193,15 +196,14 @@ public class OperationLogAspect {
 
             if (exchange != null) {
                 ServerHttpRequest req = exchange.getRequest();
-                clientIp = IpUtils.getClientIp(req);
+                clientIp = resolver().resolve(req);
                 requestMethod = req.getMethod().name();
                 requestUrl = req.getURI().getPath();
                 userAgent = req.getHeaders().getFirst("User-Agent");
             }
 
-            log.info("[operation] opId={} module={} typeCode={} desc={} user={} ip={} url={} cost={}ms status={}",
-                    operationId, module, typeCode, description,
-                    user != null ? user.nickname() : null, clientIp, requestUrl, costMs, status);
+            log.info("[operation] opId={} module={} typeCode={} desc={} url={} cost={}ms status={}",
+                    operationId, module, typeCode, description, requestUrl, costMs, status);
 
             BaseLog entity = LogEntityBinder.newInstance(opLog.entity());
             if (entity == null || operationLogHandler == null) return;
@@ -226,10 +228,12 @@ public class OperationLogAspect {
             try {
                 operationLogHandler.handle(entity);
             } catch (Exception e) {
-                log.error("[web-plus] OperationLogHandler 执行异常", e);
+                log.error("[web-plus] OperationLogHandler 执行异常: exception={}",
+                        e.getClass().getSimpleName());
             }
         } catch (Exception e) {
-            log.error("[web-plus] 记录操作日志异常", e);
+            log.error("[web-plus] 记录操作日志异常: exception={}",
+                    e.getClass().getSimpleName());
         }
     }
 
@@ -271,5 +275,9 @@ public class OperationLogAspect {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private ClientIpResolver resolver() {
+        return clientIpResolver != null ? clientIpResolver : ClientIpResolver.directPeer();
     }
 }

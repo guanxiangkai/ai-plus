@@ -35,6 +35,10 @@ public @interface TaskLog {
     /** 任务描述，支持 SpEL 模板 */
     String description() default "";
 
-    /** 是否序列化方法入参作为任务参数（默认 true） */
-    boolean saveParams() default true;
+    /**
+     * 是否序列化方法入参作为任务参数（默认 false）。
+     *
+     * <p>只有参数已完成数据分级与脱敏时，才能在具体方法上显式开启。</p>
+     */
+    boolean saveParams() default false;
 }

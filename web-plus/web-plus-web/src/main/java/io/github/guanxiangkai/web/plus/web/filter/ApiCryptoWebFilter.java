@@ -266,7 +266,7 @@ public class ApiCryptoWebFilter implements WebFilter, Ordered {
     }
 
     private ResponseStatusException payloadTooLarge(String message, Throwable cause) {
-        return new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, message, cause);
+        return new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE, message, cause);
     }
 
     private ResponseStatusException responseTooLarge(Throwable cause) {

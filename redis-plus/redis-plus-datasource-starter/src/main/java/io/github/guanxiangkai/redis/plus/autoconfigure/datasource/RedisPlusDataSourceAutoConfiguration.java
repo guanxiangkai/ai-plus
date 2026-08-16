@@ -2,10 +2,10 @@ package io.github.guanxiangkai.redis.plus.autoconfigure.datasource;
 
 import io.github.guanxiangkai.redis.plus.autoconfigure.core.RedisPlusCoreAutoConfiguration;
 import io.github.guanxiangkai.redis.plus.autoconfigure.properties.RedisPlusDataSourceProperties;
+import io.github.guanxiangkai.redis.plus.datasource.LettuceConnectionFactoryBuilder;
 import io.github.guanxiangkai.redis.plus.datasource.MultiRedisConnectionFactory;
 import io.github.guanxiangkai.redis.plus.datasource.RedisRouteStrategy;
 import io.github.guanxiangkai.redis.plus.datasource.aop.RedisDSAspect;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -23,11 +23,7 @@ import org.springframework.context.annotation.Fallback;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisPassword;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -143,37 +139,22 @@ public class RedisPlusDataSourceAutoConfiguration {
      * 调用 {@code afterPropertiesSet()} 完成连接工厂初始化（等同于 Spring 容器生命周期回调）。
      */
     private LettuceConnectionFactory buildLettuceFactory(RedisPlusDataSourceProperties.RedisSourceProperties src) {
-        RedisStandaloneConfiguration standaloneConfig = new RedisStandaloneConfiguration();
-        standaloneConfig.setHostName(src.getHost());
-        standaloneConfig.setPort(src.getPort());
-        standaloneConfig.setDatabase(src.getDatabase());
-        if (src.getPassword() != null && !src.getPassword().isBlank()) {
-            standaloneConfig.setPassword(RedisPassword.of(src.getPassword()));
-        }
-
-        LettuceConnectionFactory factory;
+        RedisPlusDataSourceProperties.SslProperties ssl = src.getSsl();
+        LettuceConnectionFactoryBuilder builder = LettuceConnectionFactoryBuilder
+                .standalone(src.getHost(), src.getPort())
+                .database(src.getDatabase())
+                .username(src.getUsername())
+                .password(src.getPassword())
+                .clientName(src.getClientName())
+                .commandTimeout(src.getTimeout())
+                .connectTimeout(src.getConnectTimeout())
+                .shutdownTimeout(src.getShutdownTimeout())
+                .ssl(ssl.isEnabled(), ssl.isStartTls(), ssl.isVerifyPeer());
         RedisPlusDataSourceProperties.PoolProperties pool = src.getPool();
-
         if (pool.isEnabled()) {
-            GenericObjectPoolConfig<io.lettuce.core.api.StatefulConnection<?, ?>> poolConfig =
-                    new GenericObjectPoolConfig<>();
-            poolConfig.setMaxTotal(pool.getMaxActive());
-            poolConfig.setMaxIdle(pool.getMaxIdle());
-            poolConfig.setMinIdle(pool.getMinIdle());
-            poolConfig.setMaxWait(pool.getMaxWait());
-
-            LettucePoolingClientConfiguration clientConfig = LettucePoolingClientConfiguration.builder()
-                    .commandTimeout(src.getTimeout())
-                    .poolConfig(poolConfig)
-                    .build();
-            factory = new LettuceConnectionFactory(standaloneConfig, clientConfig);
-        } else {
-            LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-                    .commandTimeout(src.getTimeout())
-                    .build();
-            factory = new LettuceConnectionFactory(standaloneConfig, clientConfig);
+            builder.pool(pool.getMaxActive(), pool.getMaxIdle(), pool.getMinIdle(), pool.getMaxWait());
         }
-
+        LettuceConnectionFactory factory = builder.build();
         factory.afterPropertiesSet();
         return factory;
     }

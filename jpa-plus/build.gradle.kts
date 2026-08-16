@@ -1,7 +1,6 @@
 import org.gradle.api.file.FileCollection
 import org.gradle.api.tasks.Classpath
 import org.gradle.process.CommandLineArgumentProvider
-import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import java.util.Properties
 
 /**
@@ -24,7 +23,6 @@ plugins {
     alias(libs.plugins.lombok)
     alias(libs.plugins.springboot) apply false
     alias(libs.plugins.versions)
-    alias(libs.plugins.maven.publish) apply false
 }
 
 fun isNonStable(version: String): Boolean {
@@ -54,9 +52,11 @@ allprojects {
 val lombokPlugin: Provider<PluginDependency> = libs.plugins.lombok
 val lombokDependency: Provider<MinimalExternalModuleDependency> = libs.lombok
 val springBootDependencies: Provider<MinimalExternalModuleDependency> = libs.spring.boot.dependencies
+val jackson3Bom: Provider<MinimalExternalModuleDependency> = libs.jackson3.bom
 val slf4jApi: Provider<MinimalExternalModuleDependency> = libs.slf4j.api
 val mockitoCore: Provider<MinimalExternalModuleDependency> = libs.mockito.core
 val testingBundle: Provider<ExternalModuleDependencyBundle> = libs.bundles.testing
+val junitPlatformLauncher: Provider<MinimalExternalModuleDependency> = libs.junit.platform.launcher
 
 dependencies {
     compileOnly(lombokDependency)
@@ -74,7 +74,8 @@ subprojects {
 
     apply {
         plugin("java-library")
-        plugin("com.vanniktech.maven.publish.base")
+        plugin("maven-publish")
+        plugin("signing")
         plugin(lombokPlugin.get().pluginId)
     }
 
@@ -106,20 +107,47 @@ subprojects {
                 pom { configureJpaPlusPom(project, project.name) }
             }
         }
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/guanxiangkai/ai-plus")
+                credentials {
+                    username = providers.gradleProperty("gpr.user").orNull
+                        ?: System.getenv("GITHUB_ACTOR")
+                    password = providers.gradleProperty("gpr.key").orNull
+                        ?: System.getenv("GITHUB_TOKEN")
+                }
+            }
+            maven {
+                name = "Central"
+                url = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
+                credentials {
+                    username = providers.gradleProperty("centralUsername").orNull
+                    password = providers.gradleProperty("centralPassword").orNull
+                }
+            }
+        }
     }
 
-    configure<MavenPublishBaseExtension> {
-        publishToMavenCentral(automaticRelease = true)
-        signAllPublications()
+    configure<org.gradle.plugins.signing.SigningExtension> {
+        val signingKey = providers.gradleProperty("signingKey").orNull
+        val signingPassword = providers.gradleProperty("signingPassword").orNull
+        if (!signingKey.isNullOrBlank()) {
+            useInMemoryPgpKeys(signingKey, signingPassword)
+            sign(extensions.getByType<PublishingExtension>().publications["mavenJava"])
+        }
     }
 
     dependencies {
+        // 发布 Jackson 3 LTS 安全补丁约束，避免消费方被 Boot 基线重新解析到 3.1.4。
+        "api"(platform(jackson3Bom.get()))
         "implementation"(platform(springBootDependencies.get()))
         "implementation"(slf4jApi)
         "compileOnly"(lombokDependency)
         "annotationProcessor"(lombokDependency)
         "lombok"(lombokDependency)
         testImplementation(testingBundle)
+        testRuntimeOnly(junitPlatformLauncher)
         testImplementation(mockitoCore)
         mockitoAgent(platform(springBootDependencies.get()))
         mockitoAgent(mockitoCore) { isTransitive = false }

@@ -9,7 +9,7 @@ Web Plus 是面向 Spring Boot 4 / WebFlux 的企业级 Web 增强框架骨架�
 | `web-plus-core` | 通用模型、常量、基础 SPI、响应结构和工具 |
 | `web-plus-error` | 统一异常、错误码、全局异常处理和错误码文档贡献 |
 | `web-plus-web` | WebFlux 基础能力、Controller/Service/Repository 基类、JPA Plus/MapStruct Plus 集成、接口入参出参加密 |
-| `web-plus-security` | 当前用户上下文、认证过滤器、鉴权注解、安全自动配置 |
+| `web-plus-security` | 当前用户上下文、认证过滤器、鉴权注解、租户透传 WebClient 过滤器、安全自动配置 |
 | `web-plus-protection` | 防重复提交、服务侧限流、防刷等接口保护能力 |
 | `web-plus-log` | 访问日志、操作日志、登录日志、数据变更桥接、日志 SPI |
 | `web-plus-doc` | SpringDoc / OpenAPI 文档增强 |
@@ -24,8 +24,8 @@ Web Plus 是面向 Spring Boot 4 / WebFlux 的企业级 Web 增强框架骨架�
 - 普通模块只暴露 API、注解、SPI 和可复用基础类型。
 - 自动装配、过滤器、切面和运行时实现放入 starter 或各能力模块的自动配置中。
 - 业务系统按需引入单能力模块；需要全量能力时引入 `web-plus-starter`。
-- Web Plus 按 Maven Central 独立制品消费，消费方项目不要通过本地源码目录引入。
-- 不把任何业务系统的私有语义、表结构、租户规则或具体服务调用写进 Web Plus。
+- Web Plus 按 GitHub Packages 独立产物消费，业务项目不要通过本地源码目录引入。
+- 不把任何产品业务语义、表结构、租户规则或具体服务调用写进 Web Plus。
 
 ## 获取依赖
 
@@ -35,7 +35,7 @@ Web Plus 是面向 Spring Boot 4 / WebFlux 的企业级 Web 增强框架骨架�
 | --- | --- |
 | JDK | Oracle GraalVM 25.0.4 |
 | Spring Boot | 4.1.0+ |
-| Gradle | 9.6.1+ |
+| Gradle | 9.7.0+ |
 
 ### 推荐方式：Starter
 
@@ -44,6 +44,19 @@ dependencies {
     implementation("io.github.guanxiangkai:web-plus-starter:<version>")
 }
 ```
+
+内部 HTTP 客户端统一使用显式租户透传过滤器。过滤器优先保留调用方已设置的租户请求头，
+其次读取登录安全上下文，最后读取后台任务提供的租户解析器：
+
+```java
+WebClient client = WebClient.builder()
+        .filter(new TenantForwardingExchangeFilterFunction(
+                TenantExecutionScope::currentTenantId))
+        .build();
+```
+
+该能力通过普通对象组合接入，不需要全局 `BeanPostProcessor`，因此不会隐式修改无关的
+`WebClient`，也便于 Spring AOT 分析。
 
 ### 按需引入
 
@@ -59,14 +72,56 @@ dependencies {
 
 ```toml
 [versions]
-web-plus = "<version>"
+web-plus-starter = "5.2.0"
+web-plus-web = "5.2.0"
+web-plus-security = "1.2.0"
+web-plus-log = "2.0.0"
 
 [libraries]
-web-plus-starter = { group = "io.github.guanxiangkai", name = "web-plus-starter", version.ref = "web-plus" }
-web-plus-web = { group = "io.github.guanxiangkai", name = "web-plus-web", version.ref = "web-plus" }
-web-plus-security = { group = "io.github.guanxiangkai", name = "web-plus-security", version.ref = "web-plus" }
-web-plus-log = { group = "io.github.guanxiangkai", name = "web-plus-log", version.ref = "web-plus" }
+web-plus-starter = { group = "io.github.guanxiangkai", name = "web-plus-starter", version.ref = "web-plus-starter" }
+web-plus-web = { group = "io.github.guanxiangkai", name = "web-plus-web", version.ref = "web-plus-web" }
+web-plus-security = { group = "io.github.guanxiangkai", name = "web-plus-security", version.ref = "web-plus-security" }
+web-plus-log = { group = "io.github.guanxiangkai", name = "web-plus-log", version.ref = "web-plus-log" }
+
+[bundles]
+# 产品认证与安全基础设施固定共同使用时，以职责 bundle 暴露给模块构建脚本。
+ai-auth = ["web-plus-security", "web-plus-log"]
 ```
+
+```kotlin
+dependencies {
+    implementation(libs.bundles.ai.auth)
+}
+```
+
+各模块独立发布，版本必须分别锁定；bundle 只组合依赖，不建立虚假的统一版本。
+
+## 日志数据最小化
+
+`@OperationLog` 默认不保存请求参数与响应正文，`@ScheduleLog`、`@TaskLog` 默认不保存方法参数。
+密码、令牌、连接配置、个人信息和 AI 输入输出不得因对象序列化进入审计库。只有完成字段分级、
+脱敏和保留周期设计后，才可在单个方法上显式开启相应采集项；认证请求、刷新令牌和文件锁令牌
+不得开启明文采集。
+
+## 可信客户端地址
+
+`web-plus-core` 默认只使用当前 TCP 对端作为客户端地址，不信任浏览器提交的
+`X-Forwarded-For`、`X-Real-IP` 或 `X-Verified-Client-Ip`。服务前存在受控反向代理时，
+应在最终应用中逐个配置代理的精确 IP：
+
+```yaml
+web-plus:
+  client-ip:
+    trusted-proxy-ips: ["192.0.2.10"]
+```
+
+不支持 CIDR 或主机名，避免 DNS 变化和过宽网段扩大信任边界。由共享网关向下游透传地址时，
+`X-Verified-Client-Ip` 只有在 `X-Trusted-Forward-Token` 同时校验成功后才会被采用。
+限流、防重复提交和认证保护使用完整 SHA-256 指纹作为 Redis Key，不保存原始 Token、用户名、
+IP、路径参数或查询参数；安全哈希不能用于匿名化低熵个人标识，业务日志仍需执行保留周期和访问控制。
+
+Web Plus 不修改 JVM 默认时区，也不固定 Jackson 的地域时区。最终应用应通过容器 `TZ`、
+JVM 参数和 `spring.jackson.time-zone` 统一时间语义。
 
 ## 构建
 
@@ -154,4 +209,4 @@ jpa-plus:
 
 ## 发布
 
-发布元数据统一从 `gradle.properties` 中的 `pom.*` 读取，模块版本统一从 monorepo 根目录 `gradle/module-versions.properties` 读取。能力族内部模块使用 Gradle `project(...)` 依赖；发布后的消费方只使用 Maven Central 中的 `io.github.guanxiangkai:web-plus-*` Maven 坐标。
+发布元数据统一从 `gradle.properties` 中的 `pom.*` 读取，模块版本统一从 monorepo 根目录 `gradle/module-versions.properties` 读取。能力族内部模块使用 Gradle `project(...)` 依赖；发布后的消费方只使用 GitHub Packages 中的 `io.github.guanxiangkai:web-plus-*` Maven 坐标。

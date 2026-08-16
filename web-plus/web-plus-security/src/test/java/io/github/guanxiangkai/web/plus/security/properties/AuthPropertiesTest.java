@@ -39,12 +39,12 @@ class AuthPropertiesTest {
                 false,
                 List.of("/public/**"),
                 true,
-                List.of(" 10.0.0.1 ", "", "10.0.0.2"),
-                List.of(" 10.0.0.9 ", " ")
+                List.of(" 203.0.113.1 ", "", "203.0.113.2"),
+                List.of(" 203.0.113.9 ", " ")
         );
 
-        assertThat(properties.gatewayTrustedIps()).containsExactly("10.0.0.1", "10.0.0.2");
-        assertThat(properties.gatewayTrustedProxyIps()).containsExactly("10.0.0.9");
+        assertThat(properties.gatewayTrustedIps()).containsExactly("203.0.113.1", "203.0.113.2");
+        assertThat(properties.gatewayTrustedProxyIps()).containsExactly("203.0.113.9");
     }
 
     @Test
@@ -81,5 +81,26 @@ class AuthPropertiesTest {
                 List.of("gateway.internal"),
                 List.of()
         )).hasMessageContaining("合法 IP 字面量");
+    }
+
+    @Test
+    void redactsJwtSecretFromStringRepresentation() {
+        AuthProperties properties = new AuthProperties(
+                true,
+                "JWT",
+                "Authorization",
+                "Bearer ",
+                "jwt-secret-value-0123456789abcdef",
+                7_200_000L,
+                false,
+                List.of("/public/**"),
+                false,
+                List.of(),
+                List.of()
+        );
+
+        assertThat(properties.toString())
+                .contains("jwtSecret=<redacted>")
+                .doesNotContain("jwt-secret-value-0123456789abcdef");
     }
 }

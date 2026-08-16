@@ -16,7 +16,7 @@ import java.util.*;
 /**
  * JWT 无状态 Token 服务实现
  * <p>
- * 使用 JJWT 0.12.x API 签发/解析 JWT Token。
+ * 使用 JJWT 0.13.x API 签发和解析 JWT Token。
  * 密钥来自配置 {@code web-plus.auth.jwt-secret}。
  * </p>
  *
@@ -69,15 +69,19 @@ public class JwtTokenService implements TokenService {
 
     @Override
     public Optional<Map<String, Object>> parseToken(String token) {
+        return parseClaims(token).<Map<String, Object>>map(HashMap::new);
+    }
+
+    private Optional<Claims> parseClaims(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(secretKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return Optional.of(new HashMap<>(claims));
+            return Optional.of(claims);
         } catch (JwtException | IllegalArgumentException e) {
-            log.debug("Token 解析失败: {}", e.getMessage());
+            log.debug("Token 解析失败: exception={}", e.getClass().getSimpleName());
             return Optional.empty();
         }
     }
@@ -104,7 +108,7 @@ public class JwtTokenService implements TokenService {
 
     @Override
     public Optional<CurrentUser> parseCurrentUser(String token) {
-        return parseToken(token)
+        return parseClaims(token)
                 .filter(this::isAccessTokenClaims)
                 .map(claims -> {
             String userId = (String) claims.get("sub");
@@ -133,10 +137,7 @@ public class JwtTokenService implements TokenService {
 
     private boolean isAccessTokenClaims(Map<String, Object> claims) {
         Object type = claims.get(TOKEN_TYPE_CLAIM);
-        if (type == null) {
-            return true;
-        }
-        boolean accessToken = ACCESS_TOKEN_TYPE.equals(type.toString());
+        boolean accessToken = type != null && ACCESS_TOKEN_TYPE.equals(type.toString());
         if (!accessToken) {
             log.debug("拒绝将非 access token 用作登录态凭证: type={}", type);
         }

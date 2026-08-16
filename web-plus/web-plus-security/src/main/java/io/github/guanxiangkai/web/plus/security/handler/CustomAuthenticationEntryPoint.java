@@ -33,8 +33,7 @@ public class CustomAuthenticationEntryPoint implements ServerAuthenticationEntry
     static boolean hasAuthenticationMaterial(ServerWebExchange exchange) {
         HttpHeaders headers = exchange.getRequest().getHeaders();
         return hasText(headers, HttpHeaders.AUTHORIZATION)
-                || hasText(headers, AuthConstants.HeaderConstants.USER_ID)
-                || hasText(headers, AuthConstants.HeaderConstants.TRUSTED_FORWARD_TOKEN);
+                || hasText(headers, AuthConstants.HeaderConstants.USER_ID);
     }
 
     private static boolean hasText(HttpHeaders headers, String headerName) {
@@ -45,7 +44,7 @@ public class CustomAuthenticationEntryPoint implements ServerAuthenticationEntry
     public Mono<Void> commence(ServerWebExchange exchange, AuthenticationException ex) {
         String path = exchange.getRequest().getURI().getPath();
         if (hasAuthenticationMaterial(exchange)) {
-            log.warn("认证失败的请求: {} - {}", path, ex.getMessage());
+            log.warn("认证失败的请求: path={}, exception={}", path, ex.getClass().getSimpleName());
         } else {
             log.debug("未携带认证信息的请求: {}", path);
         }

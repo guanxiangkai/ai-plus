@@ -7,10 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class DocPropertiesTest {
 
     @Test
-    void defaultContactUsesGenericProjectIdentity() {
+    void defaultContactDoesNotExposePersonalEmail() {
         DocProperties properties = new DocProperties(null, null, null, null, null, null, null);
 
-        assertEquals("AI Plus", properties.contact().name());
         assertEquals("", properties.contact().email());
         assertEquals("https://github.com/guanxiangkai/ai-plus", properties.contact().url());
     }

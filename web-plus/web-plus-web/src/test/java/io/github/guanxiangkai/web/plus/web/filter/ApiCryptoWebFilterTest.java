@@ -393,9 +393,9 @@ class ApiCryptoWebFilterTest {
         ApiCryptoProperties properties = new ApiCryptoProperties();
         properties.setEnabled(true);
         properties.getRequest().setEnabled(requestEnabled);
-        properties.getRequest().setKey("reference-request-secret");
+        properties.getRequest().setKey("example-request-secret");
         properties.getResponse().setEnabled(responseEnabled);
-        properties.getResponse().setKey("reference-response-secret");
+        properties.getResponse().setKey("example-response-secret");
         return new ApiCryptoService(properties, objectMapper);
     }
 

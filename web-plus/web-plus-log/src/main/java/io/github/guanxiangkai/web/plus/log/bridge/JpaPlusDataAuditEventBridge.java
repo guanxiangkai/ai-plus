@@ -81,7 +81,8 @@ public class JpaPlusDataAuditEventBridge {
 
             dataChangeHandler.handle(entity);
         } catch (Exception e) {
-            log.error("[web-plus] jpa-plus DataAuditEvent 桥接失败", e);
+            log.error("[web-plus] jpa-plus DataAuditEvent 桥接失败: exception={}",
+                    e.getClass().getSimpleName());
         }
     }
 

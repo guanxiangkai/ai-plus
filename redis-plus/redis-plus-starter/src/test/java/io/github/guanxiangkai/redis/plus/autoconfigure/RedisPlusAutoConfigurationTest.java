@@ -25,6 +25,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.Duration;
@@ -99,6 +100,46 @@ class RedisPlusAutoConfigurationTest {
                             .containsExactly("primary");
                     assertThat(context.getBean(StringRedisTemplate.class).getConnectionFactory())
                             .isSameAs(context.getBean(MultiRedisConnectionFactory.class));
+                });
+    }
+
+    @Test
+    void configuredSource_appliesCompleteLettuceConnectionSettings() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        RedisPlusCoreAutoConfiguration.class,
+                        RedisPlusDataSourceAutoConfiguration.class))
+                .withPropertyValues(
+                        "redis-plus.datasource.sources.primary.host=redis.example.com",
+                        "redis-plus.datasource.sources.primary.port=16379",
+                        "redis-plus.datasource.sources.primary.database=3",
+                        "redis-plus.datasource.sources.primary.username=platform",
+                        "redis-plus.datasource.sources.primary.password=secret",
+                        "redis-plus.datasource.sources.primary.client-name=platform-system",
+                        "redis-plus.datasource.sources.primary.timeout=4s",
+                        "redis-plus.datasource.sources.primary.connect-timeout=2s",
+                        "redis-plus.datasource.sources.primary.shutdown-timeout=500ms",
+                        "redis-plus.datasource.sources.primary.ssl.enabled=true",
+                        "redis-plus.datasource.sources.primary.ssl.start-tls=true",
+                        "redis-plus.datasource.sources.primary.ssl.verify-peer=false",
+                        "redis-plus.datasource.sources.primary.pool.enabled=false")
+                .run(context -> {
+                    assertThat(context).hasNotFailed().hasSingleBean(MultiRedisConnectionFactory.class);
+                    RedisConnectionFactory selected = context.getBean(
+                            MultiRedisConnectionFactory.class).determine();
+                    assertThat(selected).isInstanceOf(LettuceConnectionFactory.class);
+                    LettuceConnectionFactory lettuce = (LettuceConnectionFactory) selected;
+                    assertThat(lettuce.getStandaloneConfiguration().getHostName())
+                            .isEqualTo("redis.example.com");
+                    assertThat(lettuce.getStandaloneConfiguration().getDatabase()).isEqualTo(3);
+                    assertThat(lettuce.getClientConfiguration().getClientName())
+                            .contains("platform-system");
+                    assertThat(lettuce.getClientConfiguration().getCommandTimeout())
+                            .isEqualTo(Duration.ofSeconds(4));
+                    assertThat(lettuce.getClientConfiguration().getShutdownTimeout())
+                            .isEqualTo(Duration.ofMillis(500));
+                    assertThat(lettuce.getClientConfiguration().isUseSsl()).isTrue();
+                    assertThat(lettuce.getClientConfiguration().isStartTls()).isTrue();
                 });
     }
 

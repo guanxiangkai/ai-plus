@@ -29,7 +29,8 @@ public class CustomAccessDeniedHandler implements ServerAccessDeniedHandler {
 
     @Override
     public Mono<Void> handle(ServerWebExchange exchange, AccessDeniedException denied) {
-        log.warn("权限不足的请求: {} - {}", exchange.getRequest().getURI().getPath(), denied.getMessage());
+        log.warn("权限不足的请求: path={}, exception={}",
+                exchange.getRequest().getURI().getPath(), denied.getClass().getSimpleName());
 
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(HttpStatus.FORBIDDEN);

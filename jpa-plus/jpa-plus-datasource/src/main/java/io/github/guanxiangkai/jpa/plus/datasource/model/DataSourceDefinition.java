@@ -21,12 +21,16 @@ import java.util.Objects;
  *
  * <h3>使用示例</h3>
  * <pre>{@code
+ * String url = System.getenv("APP_REPLICA_DB_URL");
+ * String username = System.getenv("APP_REPLICA_DB_USERNAME");
+ * String password = System.getenv("APP_REPLICA_DB_PASSWORD");
+ *
  * // 最简形式（自动检测 DatabaseType、驱动、校验 SQL）
- * var def = DataSourceDefinition.of("slave", "jdbc:mysql://slave:3306/db", "root", "pwd");
+ * var def = DataSourceDefinition.of("replica", url, username, password);
  *
  * // 完整配置
- * var def = new DataSourceDefinition("slave", DatabaseType.MYSQL,
- *     "jdbc:mysql://slave:3306/db", "root", "pwd",
+ * var def = new DataSourceDefinition("replica", DatabaseType.MYSQL,
+ *     url, username, password,
  *     null, 5, 20, 30_000L, 600_000L, 1_800_000L, null, null,
  *     5_000L, 0L, false);
  * }</pre>
@@ -118,5 +122,20 @@ public record DataSourceDefinition(
         return new DataSourceDefinition(name, null, url, username, password,
                 null, 5, 20, 30_000L, 600_000L, 1_800_000L, null, null,
                 5_000L, 0L, false);
+    }
+
+    /**
+     * 返回不包含连接地址和凭据的诊断摘要。
+     *
+     * @return 已脱敏的数据源定义摘要
+     */
+    @Override
+    public String toString() {
+        return "DataSourceDefinition[name=" + name
+                + ", dbType=" + dbType
+                + ", connection=<redacted>"
+                + ", poolName=" + poolName
+                + ", minimumIdle=" + minimumIdle
+                + ", maximumPoolSize=" + maximumPoolSize + ']';
     }
 }

@@ -8,6 +8,12 @@
 # ─────────────────────────── Spring 体系 ───────────────────────────
 spring-boot = "4.1.0"          # Spring Boot 4.1 基线，统一托管 Spring Framework 7.0.8、Spring Data 2026.0.0、Security 7.1.0、Jackson 3.1.4 等版本；需重点验证自动配置和安全链路
 spring-cloud = "2025.1.2"      # Spring Cloud 2025.1 补丁线，供 web-plus-mq 的 Stream Kafka 依赖使用；需关注 Stream 5.0.2 与 Boot 4.1 的兼容性
+# Jackson 3.1 是 Boot 4.1 所在 LTS 线；固定安全补丁 3.1.5，不跨到 3.2 非 LTS 次版本。
+jackson3 = "3.1.5"
+# Jackson 2 仍由 PowerJob 等第三方使用；统一到当前稳定 2.22 线的安全补丁，消除混用 2.21/2.22。
+jackson2 = "2.22.1"
+# Netty 保持 Boot 4.1 的 4.2 兼容线，仅提升到官方已发布并修复已知漏洞的补丁版本。
+netty = "4.2.16.Final"
 
 # ─────────────────────────── Web / 文档 / 文件处理 ─────────────────
 springdoc = "3.1.0"            # SpringDoc OpenAPI WebFlux UI，供 web-plus-doc 和 web-plus-web 使用
@@ -17,28 +23,38 @@ poi = "5.5.1"                  # Apache POI，供 Excel/Office 扩展能力使�
 
 # ─────────────────────────── 安全 / 映射 / 工具库 ───────────────────
 jjwt = "0.13.0"                # JJWT，供 web-plus-security 的 Token 签发与解析使用；升级需验证 JWT 构造、解析和异常类型兼容性
-mapstruct-plus = "1.5.1"       # MapStruct Plus，供 web-plus-web 暴露对象映射集成
+mapstruct-plus = "1.5.2"       # MapStruct Plus 稳定补丁，修复 Record 注解扩散与异常 .msp 解析；升级需验证注解处理器生成代码
 hutool = "5.8.47"              # Hutool 工具集，供 web-plus-core 的通用工具能力使用
-bouncycastle = "1.85"          # Bouncy Castle 加密 provider，供 web-plus-web 接口加密默认 SM4-CBC-SM3 策略运行时使用
-micrometer-context-propagation = "1.2.1" # Reactor 与 ThreadLocal 上下文传播，供安全上下文跨线程使用
+bouncycastle = "1.85.2"        # Bouncy Castle 1.85 稳定补丁，供 web-plus-web 接口加密默认 SM4-CBC-SM3 策略运行时使用
+jspecify = "1.0.0"             # JSpecify 当前稳定版；Spring Framework 7 推荐库使用其替代已弃用的 org.springframework.lang 注解
 
 # ─────────────────────────── 任务调度 ──────────────────────────────
 powerjob = "5.1.2"             # PowerJob Worker SDK，供 web-plus-job 公共处理器使用
+# PowerJob 传递栈的兼容性补丁；Scala 2.13 保持二进制兼容，Vert.x 保持 4.x，避免引入大版本迁移。
+scala = "2.13.18"
+vertx = "4.5.27"
+guava = "33.4.8-jre"
+commons-io = "2.21.0"
+# Kafka 客户端的 LZ4 实现固定到已修复补丁，不改变 Kafka 协议与客户端主版本。
+lz4 = "1.11.1"
 
 # ─────────────────────────── 测试 ────────────────────────────────
-junit = "6.1.2"                # JUnit 6.1 正式补丁线
+junit = "6.1.3"                # JUnit 6.1 最新正式补丁，统一 Jupiter 与 Platform 测试运行时
 
 # ─────────────────────────── Gradle 插件 ─────────────────────────
 lombok-plugin = "9.5.0"        # Lombok Gradle 插件
 lombok = "1.18.46"             # Lombok 编译期注解处理器
-versions-plugin = "0.59.0"     # Ben Manes Versions Plugin：依赖更新检查
-maven-publish-plugin = "0.37.0" # Vanniktech Maven Publish：Central Portal 上传与内存 GPG 签名
+versions-plugin = "0.61.0"     # Ben Manes Versions Plugin：依赖更新检查，不参与运行时产物
 
 [libraries]
 
 # ═══════════════════════════ Spring Boot 核心与 Starter ═══════════════════════════
 # Spring Boot BOM 只做版本托管，不直接引入运行时 jar
 spring-boot-dependencies = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "spring-boot" }
+# 公共运行时依赖的安全补丁 BOM；由发布模块传递给最终应用。
+jackson3-bom = { group = "tools.jackson", name = "jackson-bom", version.ref = "jackson3" }
+jackson2-bom = { group = "com.fasterxml.jackson", name = "jackson-bom", version.ref = "jackson2" }
+netty-bom = { group = "io.netty", name = "netty-bom", version.ref = "netty" }
 # 自动配置注解、条件装配和配置元数据处理器
 spring-boot-autoconfigure = { group = "org.springframework.boot", name = "spring-boot-autoconfigure" }
 spring-boot-configuration-processor = { group = "org.springframework.boot", name = "spring-boot-configuration-processor" }
@@ -66,7 +82,8 @@ spring-aop = { group = "org.springframework", name = "spring-aop" }
 spring-tx = { group = "org.springframework", name = "spring-tx" }
 aspectjweaver = { group = "org.aspectj", name = "aspectjweaver" }
 reactor-core = { group = "io.projectreactor", name = "reactor-core" }
-micrometer-context-propagation = { group = "io.micrometer", name = "context-propagation", version.ref = "micrometer-context-propagation" }
+# Reactor 与 ThreadLocal 上下文传播；版本由 Spring Boot 导入的 Micrometer BOM 托管。
+micrometer-context-propagation = { group = "io.micrometer", name = "context-propagation" }
 
 # ═══════════════════════════ Spring Security / Data / Jakarta ═══════════════════════════
 # 安全、Redis、JPA API 和 Jakarta API 作为 Web Plus 的可选基础能力，版本由 BOM 托管
@@ -88,6 +105,12 @@ fastexcel = { group = "cn.idev.excel", name = "fastexcel", version.ref = "fastex
 poi-ooxml = { group = "org.apache.poi", name = "poi-ooxml", version.ref = "poi" }
 poi-scratchpad = { group = "org.apache.poi", name = "poi-scratchpad", version.ref = "poi" }
 powerjob-worker-starter = { group = "tech.powerjob", name = "powerjob-worker-spring-boot-starter", version.ref = "powerjob" }
+# PowerJob 5.1.2 的旧传递依赖以同一大版本稳定补丁覆盖，降低已知漏洞面。
+vertx-stack-depchain = { group = "io.vertx", name = "vertx-stack-depchain", version.ref = "vertx" }
+scala-library = { group = "org.scala-lang", name = "scala-library", version.ref = "scala" }
+guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
+commons-io = { group = "commons-io", name = "commons-io", version.ref = "commons-io" }
+lz4-java = { group = "at.yawk.lz4", name = "lz4-java", version.ref = "lz4" }
 
 # ═══════════════════════════ JWT / Jakarta / 日志 / 工具库 ═══════════════════════════
 # JJWT 运行时拆分为 api + impl + gson，避免引入 Jackson 2.x 运行时栈
@@ -101,6 +124,8 @@ hutool-all = { group = "cn.hutool", name = "hutool-all", version.ref = "hutool" 
 bouncycastle-bcprov-jdk18on = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 # Jackson 3 由 Spring Boot BOM 托管版本，供序列化和 starter 内部配置使用
 jackson-databind = { group = "tools.jackson.core", name = "jackson-databind" }
+# JSpecify 只携带 CLASS 级空值契约，不进入运行时实现。
+jspecify = { group = "org.jspecify", name = "jspecify", version.ref = "jspecify" }
 
 # ═══════════════════════════ 测试 ═══════════════════════════
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
@@ -108,8 +133,8 @@ junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform
 
 [bundles]
 
-# 测试全家桶：所有模块通过根构建脚本统一引入
-testing = ["spring-boot-starter-test", "junit-jupiter", "junit-platform-launcher"]
+# 测试编译依赖组；JUnit Platform Launcher 必须由构建脚本单独声明为 testRuntimeOnly。
+testing = ["spring-boot-starter-test", "junit-jupiter"]
 
 # core 模块公开 API：统一响应、基础实体、分页类型、当前用户 SPI、Schema/Validation 注解和 Hutool 工具
 core-api = ["spring-boot-starter-json", "spring-web", "spring-data-commons", "jakarta-persistence-api", "jakarta-validation-api", "hibernate-core", "reactor-core", "swagger-annotations-jakarta", "hutool-all"]
@@ -138,6 +163,12 @@ dict-compileOnly = ["spring-data-redis", "spring-boot-autoconfigure", "spring-co
 # excel 模块编译期依赖：FastExcel、POI、Web 响应和 Reactor 类型
 excel-compileOnly = ["fastexcel", "poi-ooxml", "poi-scratchpad", "spring-boot-autoconfigure", "spring-context", "spring-web", "reactor-core"]
 
+# Boot 自动配置模块的最小编译契约；doc 与 excel 仅编译自动配置和容器类型，不向消费方传递。
+auto-configuration-compileOnly = ["spring-boot-autoconfigure", "spring-context"]
+
+# Excel 模块内部 Office 格式实现；POI 核心 OOXML 与旧格式支持必须保持同一版本共同升级。
+excel-implementation = ["poi-ooxml", "poi-scratchpad"]
+
 # starter 内部实现依赖：自动配置、AOP、参数校验和 Jackson 3 序列化
 starter-implementation = ["spring-boot-autoconfigure", "spring-core", "spring-beans", "spring-context", "spring-aop", "aspectjweaver", "spring-boot-starter-validation", "jackson-databind"]
 
@@ -154,4 +185,3 @@ springboot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 
 # 依赖更新检查
 versions = { id = "io.github.ben-manes.versions", version.ref = "versions-plugin" }
-maven-publish = { id = "com.vanniktech.maven.publish.base", version.ref = "maven-publish-plugin" }

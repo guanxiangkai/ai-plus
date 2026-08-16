@@ -120,7 +120,7 @@ public class TenantInterceptor implements DataInterceptor {
             invocation = qi.withQueryContext(ctx.withRuntime(newRuntime));
 
             if (log.isDebugEnabled()) {
-                log.debug("[jpa-plus] TenantInterceptor: injecting {}={}", tenantColumn, tenantId);
+                log.debug("[jpa-plus] TenantInterceptor: injecting tenant predicate for column={}", tenantColumn);
             }
         }
         return chain.proceed(invocation);

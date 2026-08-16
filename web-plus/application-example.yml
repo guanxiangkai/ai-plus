@@ -1,4 +1,7 @@
 web-plus:
+  client-ip:
+    # 默认不信任任何前置代理。存在受控反向代理时，只填写其精确 IP，不支持 CIDR 或主机名。
+    trusted-proxy-ips: []
   import:
     allowed-extensions: [".xlsx", ".xls", ".doc", ".docx"]
     max-file-size: 20MB

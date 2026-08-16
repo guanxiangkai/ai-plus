@@ -1,8 +1,10 @@
 package io.github.guanxiangkai.web.plus.protection.autoconfigure;
 
 import io.github.guanxiangkai.web.plus.protection.filter.ApiRateLimitFilter;
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.protection.properties.ApiRateLimitProperties;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -33,9 +35,11 @@ public class ApiRateLimitAutoConfiguration {
     @ConditionalOnProperty(prefix = "web-plus.security.api-rate-limit", name = "enabled", havingValue = "true", matchIfMissing = true)
     public ApiRateLimitFilter apiRateLimitFilter(ReactiveStringRedisTemplate redisTemplate,
                                                  ApiRateLimitProperties properties,
-                                                 ObjectMapper objectMapper) {
+                                                 ObjectMapper objectMapper,
+                                                 ObjectProvider<ClientIpResolver> clientIpResolver) {
         log.info("[ApiRateLimit] 服务侧 API 限流已启用: limit={}/{}s, burst={}",
                 properties.limit(), properties.window().toSeconds(), properties.burst());
-        return new ApiRateLimitFilter(redisTemplate, properties, objectMapper);
+        return new ApiRateLimitFilter(redisTemplate, properties, objectMapper,
+                clientIpResolver.getIfAvailable(ClientIpResolver::directPeer));
     }
 }

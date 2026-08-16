@@ -32,16 +32,8 @@ dependencies {
     // ═══════════ Starter 公开 ABI ═══════════
     api(libs.bundles.starter.public.api)                   // JpaRepository / Pageable / EntityManager / ApplicationEventPublisher
 
-    // ═══════════ Jakarta Validation（@NotBlank / @Size / @Validated Bean 校验） ═══════════
-    implementation(libs.jakarta.validation.api)
-    implementation(libs.spring.boot.starter.validation)   // 配置属性约束所需的 Hibernate Validator 运行时
-
     // ═══════════ Starter 内部基础设施 ═══════════
-    implementation(libs.spring.boot.starter.data.jpa)      // 作为 starter 保留完整 JPA 运行时聚合能力
-    implementation(libs.bundles.starter.boot.autoconfigure)    // Boot 自动装配注解与条件装配基础设施
-    implementation(libs.bundles.starter.jdbc.autoconfigure)    // DataSourceAutoConfiguration / DataSourceProperties
-    implementation(libs.bundles.starter.spring.core.internal)  // Binder / Environment / @Order 等内部基础设施
-    implementation(libs.bundles.starter.spring.beans.internal) // ObjectProvider / BeanDefinitionRegistry 等装配细节
+    implementation(libs.bundles.starter.internal)          // JPA、Validation、自动配置、JDBC、Binder 与 Bean 装配
     annotationProcessor(platform(libs.spring.boot.dependencies))
     annotationProcessor(libs.bundles.starter.configuration.processor)
 

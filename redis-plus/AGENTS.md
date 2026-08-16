@@ -8,7 +8,7 @@
 - 复用现有架构；清理重复、无效入口、临时代码，不为最小 diff 牺牲质量。
 - 改代码同步类型、配置、测试、mock、文档、示例和调用方。
 - 后端查鉴权、租户、事务、幂等、并发、分页、超时、日志脱敏；前端补齐 loading/empty/error/disabled/权限/窄屏。
-- 依赖、构建和测试在 GitHub 托管的 Linux CI 环境执行；本地只保存和编辑源码。
+- 依赖、构建、测试、运行都在满足项目版本基线的 Linux 环境执行。
 - 交付说明改动、验证、风险；没跑的测试不能说通过。
 - 重复错误写回 `AGENTS.md`；确定性规则沉淀为测试、lint、hook、CI 或 skill。
 
@@ -38,18 +38,18 @@
 - `redis-plus-queue` / `redis-plus-queue-starter`：Redis List/Stream 队列、订阅运行时、ACK 和重试语义。
 - `redis-plus-governance` / `redis-plus-governance-starter`：Micrometer 指标、Actuator 健康检查和治理扩展。
 - `redis-plus-starter`：聚合全部单能力 starter。
-- `buildSrc`：Maven Central POM 元数据约定。
+- `buildSrc`：公共 Maven POM 元数据约定。
 
 ## 发布版本与分支治理
 
-- Redis Plus 位于 `ai-plus` monorepo，发布 Group 为 `io.github.guanxiangkai`，制品仓库为 Maven Central。
+- Redis Plus 位于 `ai-plus` monorepo，发布 Group 为 `io.github.guanxiangkai`，公共制品发布到 Maven Central。
 - 每个模块独立维护版本，版本唯一记录在 monorepo 根目录 `gradle/module-versions.properties`。
 - 修改公共契约时，只提升发生变化的模块及受影响的下游模块，不得恢复能力族统一版本。
 - 每次修改都必须先判断版本增量：
   - `PATCH`：兼容修复、文档/AGENTS/构建元数据调整、内部实现优化。
   - `MINOR`：兼容新增公开 API、配置项、模块能力、自动配置或扩展点。
   - `MAJOR`：破坏性 API/SPI、模块名、groupId/artifactId、JDK/Spring 基线或默认行为变化。
-- 当前公开基线只维护受保护的 `main`；后续变更通过功能分支和 Pull Request 进入 `main`。
+- 分支按 monorepo 的 `feature/* -> dev -> test -> main` 统一晋级。
 
 ## 常用命令
 

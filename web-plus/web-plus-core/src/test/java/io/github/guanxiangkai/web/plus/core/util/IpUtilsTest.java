@@ -4,10 +4,24 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class IpUtilsTest {
+
+    @Test
+    void missingRemoteAddressShouldReturnUnknownWithoutTrustingForwardedHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Forwarded-For", "203.0.113.9");
+
+        assertThat(IpUtils.getClientIp(headers, null)).isEqualTo("unknown");
+    }
+
+    @Test
+    void nullLiteralShouldNotResolveAnAddress() {
+        assertThat(IpUtils.normalizeIpLiteral(null)).isNull();
+    }
 
     @Test
     void getClientIp_ignoresSpoofedForwardedHeadersFromPublicPeer() {
@@ -22,11 +36,46 @@ class IpUtilsTest {
     @Test
     void getClientIp_acceptsForwardedHeadersFromTrustedInternalPeer() {
         HttpHeaders headers = new HttpHeaders();
-        headers.add("X-Forwarded-For", "203.0.113.10, 10.0.0.8");
+        headers.add("X-Forwarded-For", "203.0.113.10, 127.0.0.8");
 
-        String clientIp = IpUtils.getClientIp(headers, new InetSocketAddress("10.0.0.2", 8080));
+        String clientIp = IpUtils.getClientIp(headers, new InetSocketAddress("127.0.0.2", 8080));
 
         assertThat(clientIp).isEqualTo("203.0.113.10");
+    }
+
+    @Test
+    void explicitResolverIgnoresForwardedHeadersFromUntrustedPeer() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Forwarded-For", "203.0.113.10");
+
+        String clientIp = IpUtils.getClientIp(headers,
+                new InetSocketAddress("198.51.100.5", 8080), List.of("198.51.100.6"));
+
+        assertThat(clientIp).isEqualTo("198.51.100.5");
+    }
+
+    @Test
+    void explicitResolverWalksForwardedChainFromTrustedEdge() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Forwarded-For", "192.0.2.44, 198.51.100.6");
+
+        String clientIp = IpUtils.getClientIp(headers,
+                new InetSocketAddress("198.51.100.7", 8080),
+                List.of("198.51.100.6", "198.51.100.7"));
+
+        assertThat(clientIp).isEqualTo("192.0.2.44");
+    }
+
+    @Test
+    void explicitResolverRejectsAttackerPrefixBeforeUntrustedBoundary() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Forwarded-For", "192.0.2.99, 203.0.113.30, 198.51.100.6");
+
+        String clientIp = IpUtils.getClientIp(headers,
+                new InetSocketAddress("198.51.100.7", 8080),
+                List.of("198.51.100.6", "198.51.100.7"));
+
+        assertThat(clientIp).isEqualTo("203.0.113.30");
     }
 
     @Test

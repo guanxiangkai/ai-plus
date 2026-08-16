@@ -90,7 +90,7 @@ require(unknownModules.isEmpty()) {
 
 tasks.register("publishSelected") {
     group = "publishing"
-    description = "将 releaseModules 指定的独立模块签名并发布到 Maven Central"
+    description = "将 releaseModules 指定的独立模块发布到 GitHub Packages"
 
     if (requestedModules.isEmpty()) {
         doFirst {
@@ -100,7 +100,24 @@ tasks.register("publishSelected") {
         dependsOn(requestedModules.map { module ->
             val buildName = moduleBuilds.getValue(module)
             gradle.includedBuild(buildName)
-                .task(":$module:publishMavenJavaPublicationToMavenCentralRepository")
+                .task(":$module:publishMavenJavaPublicationToGitHubPackagesRepository")
+        })
+    }
+}
+
+tasks.register("publishSelectedToCentral") {
+    group = "publishing"
+    description = "将 releaseModules 指定的独立模块签名并上传到 Maven Central 暂存区"
+
+    if (requestedModules.isEmpty()) {
+        doFirst {
+            error("必须使用 -PreleaseModules=模块名[,模块名] 或 -PreleaseModules=all 指定发布范围")
+        }
+    } else {
+        dependsOn(requestedModules.map { module ->
+            val buildName = moduleBuilds.getValue(module)
+            gradle.includedBuild(buildName)
+                .task(":$module:publishMavenJavaPublicationToCentralRepository")
         })
     }
 }

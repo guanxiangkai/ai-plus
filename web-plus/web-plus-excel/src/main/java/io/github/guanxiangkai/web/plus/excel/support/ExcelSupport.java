@@ -64,7 +64,8 @@ public final class ExcelSupport {
                         return bos.toByteArray();
                     }
                 }).subscribeOn(Schedulers.boundedElastic())
-                .doOnError(e -> log.error("[excel] 导出失败: {}", e.getMessage(), e));
+                .doOnError(e -> log.error("[excel] 导出失败: exception={}",
+                        e.getClass().getSimpleName()));
     }
 
     /**
@@ -122,7 +123,8 @@ public final class ExcelSupport {
     public static <T> Mono<List<T>> read(InputStream inputStream, Class<T> clazz, int maxImportRows) {
         return Mono.fromCallable(() -> readSync(inputStream, clazz, maxImportRows))
                 .subscribeOn(Schedulers.boundedElastic())
-                .doOnError(e -> log.error("[excel] 导入失败: {}", e.getMessage(), e));
+                .doOnError(e -> log.error("[excel] 导入失败: exception={}",
+                        e.getClass().getSimpleName()));
     }
 
     /**
