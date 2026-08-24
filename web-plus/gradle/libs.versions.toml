@@ -17,7 +17,7 @@ poi = "5.5.1"                  # Apache POI，供 Excel/Office 扩展能力使�
 
 # ─────────────────────────── 安全 / 映射 / 工具库 ───────────────────
 jjwt = "0.13.0"                # JJWT，供 web-plus-security 的 Token 签发与解析使用；升级需验证 JWT 构造、解析和异常类型兼容性
-mapstruct-plus = "1.5.1"       # MapStruct Plus，供 web-plus-web 暴露对象映射集成
+mapstruct-plus = "1.5.2"       # MapStruct Plus，供 web-plus-web 暴露对象映射集成
 hutool = "5.8.47"              # Hutool 工具集，供 web-plus-core 的通用工具能力使用
 bouncycastle = "1.85.2"        # Bouncy Castle 最新稳定安全补丁，供 web-plus-web 接口加密默认 SM4-CBC-SM3 策略运行时使用
 
