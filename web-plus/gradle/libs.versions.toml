@@ -25,7 +25,7 @@ bouncycastle = "1.85.2"        # Bouncy Castle 最新稳定安全补丁，供 we
 powerjob = "5.1.2"             # PowerJob Worker SDK，供 web-plus-job 公共处理器使用
 
 # ─────────────────────────── 测试 ────────────────────────────────
-junit = "6.1.2"                # JUnit 6.1 最新已发布稳定补丁
+junit = "6.1.3"                # JUnit 6.1 最新已发布稳定补丁
 
 # ─────────────────────────── Gradle 插件 ─────────────────────────
 lombok-plugin = "9.5.0"        # Lombok Gradle 插件
