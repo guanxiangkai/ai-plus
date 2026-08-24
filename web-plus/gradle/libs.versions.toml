@@ -49,6 +49,8 @@ spring-boot-starter-security = { group = "org.springframework.boot", name = "spr
 spring-boot-starter-validation = { group = "org.springframework.boot", name = "spring-boot-starter-validation" }
 spring-boot-starter-data-redis-reactive = { group = "org.springframework.boot", name = "spring-boot-starter-data-redis-reactive" }
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
+# WebClient 自动配置扩展 SPI，供全局 TraceId 出站过滤器使用。
+spring-boot-webclient = { group = "org.springframework.boot", name = "spring-boot-webclient" }
 
 # ═══════════════════════════ Spring Cloud 消息 ═══════════════════════════
 # Spring Cloud BOM 与 Stream Kafka Binder，供 web-plus-mq 使用
@@ -67,6 +69,9 @@ spring-tx = { group = "org.springframework", name = "spring-tx" }
 aspectjweaver = { group = "org.aspectj", name = "aspectjweaver" }
 reactor-core = { group = "io.projectreactor", name = "reactor-core" }
 micrometer-context-propagation = { group = "io.micrometer", name = "context-propagation", version.ref = "micrometer-context-propagation" }
+micrometer-tracing = { group = "io.micrometer", name = "micrometer-tracing" }
+# Spring Cloud Stream 5 的 Observation 支持要求显式提供 Reactor Micrometer 集成。
+reactor-core-micrometer = { group = "io.projectreactor", name = "reactor-core-micrometer" }
 
 # ═══════════════════════════ Spring Security / Data / Jakarta ═══════════════════════════
 # 安全、Redis、JPA API 和 Jakarta API 作为 Web Plus 的可选基础能力，版本由 BOM 托管
@@ -112,7 +117,7 @@ junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform
 testing = ["spring-boot-starter-test", "junit-jupiter", "junit-platform-launcher"]
 
 # core 模块公开 API：统一响应、基础实体、分页类型、当前用户 SPI、Schema/Validation 注解和 Hutool 工具
-core-api = ["spring-boot-starter-json", "spring-web", "spring-data-commons", "jakarta-persistence-api", "jakarta-validation-api", "hibernate-core", "reactor-core", "swagger-annotations-jakarta", "hutool-all"]
+core-api = ["spring-boot-starter-json", "spring-web", "spring-data-commons", "jakarta-persistence-api", "jakarta-validation-api", "hibernate-core", "reactor-core", "micrometer-context-propagation", "swagger-annotations-jakarta", "hutool-all"]
 
 # web 模块公开 API：WebFlux、参数校验、JPA Plus、MapStruct Plus 和接口加密默认 SM4 provider
 web-api = ["spring-boot-starter-webflux", "spring-boot-starter-validation", "mapstruct-plus-spring-boot-starter", "bouncycastle-bcprov-jdk18on"]
@@ -130,7 +135,7 @@ error-compileOnly = ["spring-boot-autoconfigure", "spring-context", "spring-web"
 auth-compileOnly = ["spring-boot-autoconfigure", "spring-context", "spring-web", "spring-security-core", "spring-security-web", "spring-security-config", "jackson-databind", "micrometer-context-propagation", "spring-aop", "aspectjweaver", "reactor-core", "jakarta-annotation-api"]
 
 # log 模块编译期依赖：日志切面、SpEL、审计桥接和 Redis Plus 队列能力
-log-compileOnly = ["spring-boot-autoconfigure", "spring-context", "spring-expression", "spring-web", "spring-tx", "spring-aop", "aspectjweaver", "reactor-core", "micrometer-context-propagation"]
+log-compileOnly = ["spring-boot-autoconfigure", "spring-boot-webclient", "spring-context", "spring-expression", "spring-web", "spring-tx", "spring-aop", "aspectjweaver", "reactor-core", "micrometer-context-propagation"]
 
 # dict 模块编译期与测试依赖：Spring Data Redis 和 Reactor 类型
 dict-compileOnly = ["spring-data-redis", "spring-boot-autoconfigure", "spring-context", "reactor-core"]

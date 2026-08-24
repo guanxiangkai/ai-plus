@@ -89,6 +89,7 @@ class SecurityAutoConfigurationTest {
     @Test
     void shouldRestoreCurrentUserForSynchronousPermissionChecks() {
         SecurityAutoConfiguration configuration = new SecurityAutoConfiguration();
+        new io.github.guanxiangkai.web.plus.core.config.ContextPropagationAutoConfiguration();
         configuration.enableReactorContextPropagation();
         CurrentUser expected = CurrentUser.ofUserId("user-1");
 

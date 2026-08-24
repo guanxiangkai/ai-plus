@@ -30,16 +30,16 @@
 
 ## 项目地图
 
-- `web-plus-core`：通用模型、常量、基础 SPI、响应结构和工具。
+- `web-plus-core`：通用模型、常量、基础 SPI、响应结构、Reactor/异步上下文传播和工具。
 - `web-plus-error`：统一异常、错误码、全局异常处理和错误码文档贡献。
 - `web-plus-web`：WebFlux 基础能力、Controller/Service/Repository 基类、JPA Plus 与 MapStruct Plus 集成。
 - `web-plus-security`：当前用户上下文、安全过滤器、鉴权注解、可信转发和 Token 抽象。
 - `web-plus-protection`：防重复提交、服务侧限流、防刷等接口保护能力。
-- `web-plus-log`：访问日志、操作日志、登录日志、数据变更桥接和日志 SPI。
+- `web-plus-log`：HTTP TraceId、WebClient 透传、访问日志、操作日志、登录日志、数据变更桥接和日志 SPI。
 - `web-plus-doc`：SpringDoc / OpenAPI 文档增强。
 - `web-plus-excel`：FastExcel 导入导出基础设施。
 - `web-plus-dict`：基于 Redis Plus 三级缓存的字典翻译与刷新。
-- `web-plus-mq`：Spring Cloud Stream 消息基础能力。
+- `web-plus-mq`：Spring Cloud Stream 消息、Observation 和消费线程 TraceId 恢复能力。
 - `web-plus-job`：PowerJob Worker 公共处理器。
 - `web-plus-starter`：聚合入口，传递全部能力模块。
 

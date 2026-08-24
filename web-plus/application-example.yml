@@ -33,6 +33,9 @@ web-plus:
     duration: 1s
     include-params: true
   log:
+    enabled: true
+    trace-header-name: X-Trace-Id
+    context-propagation-enabled: true
     access-log-enabled: true
     operation-log-enabled: true
   security:

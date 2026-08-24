@@ -1,6 +1,9 @@
 package io.github.guanxiangkai.web.plus.mq.producer;
 
 import io.github.guanxiangkai.web.plus.mq.exception.MessageSendException;
+import io.github.guanxiangkai.web.plus.core.constant.WebPlusConstants;
+import io.github.guanxiangkai.web.plus.core.context.RequestContextHolder;
+import io.github.guanxiangkai.web.plus.core.trace.TraceId;
 import io.github.guanxiangkai.web.plus.mq.model.MqMessage;
 import io.github.guanxiangkai.web.plus.mq.model.SendResult;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +41,7 @@ public class MessageProducer {
      *
      * @param topic   目标 binding 名（对应 Kafka topic）
      * @param payload 消息负载
-     * @return {@link SendResult}，messageId 可用于链路追踪
+     * @return {@link SendResult}，messageId 用于定位单条消息
      * @throws MessageSendException 发送失败时抛出，调用方必须处理
      */
     public <T> SendResult send(String topic, T payload) {
@@ -69,7 +72,11 @@ public class MessageProducer {
      */
     @Async
     public <T> CompletableFuture<SendResult> sendAsync(String topic, T payload) {
-        return CompletableFuture.supplyAsync(() -> send(topic, payload));
+        try {
+            return CompletableFuture.completedFuture(send(topic, payload));
+        } catch (RuntimeException exception) {
+            return CompletableFuture.failedFuture(exception);
+        }
     }
 
     /**
@@ -78,11 +85,15 @@ public class MessageProducer {
      * @throws MessageSendException 当 streamBridge 返回 false 或抛出异常时
      */
     private <T> SendResult doSend(String topic, MqMessage<T> mqMessage) {
-        Message<MqMessage<T>> message = MessageBuilder
+        MessageBuilder<MqMessage<T>> messageBuilder = MessageBuilder
                 .withPayload(mqMessage)
                 .setHeader("messageId", mqMessage.messageId())
-                .setHeader("topic", topic)
-                .build();
+                .setHeader("topic", topic);
+        String traceId = RequestContextHolder.getTraceId();
+        if (TraceId.isValid(traceId)) {
+            messageBuilder.setHeader(WebPlusConstants.TRACE_ID_HEADER, traceId);
+        }
+        Message<MqMessage<T>> message = messageBuilder.build();
 
         boolean sent;
         try {
@@ -105,4 +116,3 @@ public class MessageProducer {
         return UUID.randomUUID().toString().replace("-", "");
     }
 }
-

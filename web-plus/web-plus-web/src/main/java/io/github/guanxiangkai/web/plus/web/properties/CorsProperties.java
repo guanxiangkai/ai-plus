@@ -1,5 +1,6 @@
 package io.github.guanxiangkai.web.plus.web.properties;
 
+import io.github.guanxiangkai.web.plus.core.constant.WebPlusConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
@@ -29,7 +30,7 @@ public record CorsProperties(
                 "PATCH", "DELETE", "OPTIONS");
         if (allowedHeaders == null) allowedHeaders = List.of("*");
         if (exposedHeaders == null) exposedHeaders = List.of(
-                "Authorization", "X-Trace-Id", "Content-Disposition");
+                "Authorization", WebPlusConstants.TRACE_ID_HEADER, "Content-Disposition");
         if (allowCredentials == null) allowCredentials = false;
         if (maxAge == null) maxAge = 1800L;
         if (allowCredentials

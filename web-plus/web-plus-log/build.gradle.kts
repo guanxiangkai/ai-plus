@@ -1,5 +1,6 @@
 dependencies {
     api(projects.webPlusCore)
+    api(libs.micrometer.tracing)
     compileOnly(libs.bundles.log.compileOnly)
     compileOnly(plusModule("jpa-plus-core"))
     compileOnly(plusModule("jpa-plus-audit"))
@@ -9,5 +10,6 @@ dependencies {
     testImplementation(plusModule("jpa-plus-audit"))
     testImplementation(plusModule("redis-plus-starter"))
     testImplementation(libs.spring.boot.starter.webflux)
+    testImplementation(libs.spring.boot.webclient)
     annotationProcessor(libs.spring.boot.configuration.processor)
 }

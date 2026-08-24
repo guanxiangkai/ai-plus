@@ -6,16 +6,16 @@ Web Plus 是面向 Spring Boot 4 / WebFlux 的企业级 Web 增强框架骨架�
 
 | 模块 | 职责 |
 | --- | --- |
-| `web-plus-core` | 通用模型、常量、基础 SPI、响应结构和工具 |
+| `web-plus-core` | 通用模型、常量、基础 SPI、响应结构、Reactor/异步上下文传播和工具 |
 | `web-plus-error` | 统一异常、错误码、全局异常处理和错误码文档贡献 |
 | `web-plus-web` | WebFlux 基础能力、Controller/Service/Repository 基类、JPA Plus/MapStruct Plus 集成、接口入参出参加密 |
 | `web-plus-security` | 当前用户上下文、认证过滤器、鉴权注解、安全自动配置 |
 | `web-plus-protection` | 防重复提交、服务侧限流、防刷等接口保护能力 |
-| `web-plus-log` | 访问日志、操作日志、登录日志、数据变更桥接、日志 SPI |
+| `web-plus-log` | HTTP TraceId、WebClient 透传、访问日志、操作日志、登录日志、数据变更桥接和日志 SPI |
 | `web-plus-doc` | SpringDoc / OpenAPI 文档增强 |
 | `web-plus-excel` | FastExcel 导入导出基础设施 |
 | `web-plus-dict` | 基于 Redis Plus 三级缓存的字典翻译与刷新 |
-| `web-plus-mq` | Spring Cloud Stream 消息基础能力 |
+| `web-plus-mq` | Spring Cloud Stream 消息、Observation 与消费线程 TraceId 恢复能力 |
 | `web-plus-job` | PowerJob Worker 公共处理器 |
 | `web-plus-starter` | 聚合入口，传递全部能力模块 |
 
@@ -75,6 +75,21 @@ web-plus-log = { group = "io.github.guanxiangkai", name = "web-plus-log", versio
 ```
 
 基础配置示例见 `application-example.yml`。
+
+## 全链路追踪
+
+`web-plus-log` 默认从 Micrometer Tracing 当前 Span 获取标准 TraceId，并将同一个值写入
+`X-Trace-Id` 请求头、响应头、Reactor Context 和 MDC。通过 Spring Boot 自动配置
+`WebClient.Builder` 创建的客户端会同时获得标准 W3C `traceparent` 和 `X-Trace-Id` 透传；
+不要使用 `WebClient.create()` 绕过自动配置构建器。
+
+`web-plus-core` 使用 Micrometer Context Propagation 统一覆盖 Reactor 调度器和默认虚拟线程
+执行器。自定义线程池应注入名为 `webPlusContextTaskDecorator` 的 `TaskDecorator`。
+`web-plus-mq` 在消息头写入 `X-Trace-Id`，并在函数式消费者执行前恢复、执行后清理上下文。
+
+业务应用需要标准 Span、W3C 传播和可视化后端时，应引入与项目 Spring Boot 版本一致的
+`spring-boot-starter-opentelemetry`。OTLP 导出地址、采样率和启用开关属于部署配置，
+不得硬编码在公共框架中。
 
 ## 接口加密
 
