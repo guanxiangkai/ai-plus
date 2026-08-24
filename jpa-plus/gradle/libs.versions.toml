@@ -6,9 +6,8 @@
 [versions]
 
 # ─────────────────────────── Spring 体系 ───────────────────────────
-spring-boot = "4.1.0"          # Spring Boot 4.1 正式基线；带入 Spring Framework 7.0.8 与 Spring Data 2026.0.0，Repository/事务/健康检查 ABI 需构建验证
+spring-boot = "4.1.1"          # Spring Boot 4.1.1 稳定补丁；带入 Spring Framework 7.0.9 与 Spring Data 2026.0.1，Repository/事务/健康检查 ABI 需构建验证
 houbb-sensitive-word = "0.29.5" # houbb sensitive-word 高级 DFA 敏感词引擎（可选集成）
-hibernate = "7.4.5.Final"      # Hibernate ORM 7.4 最新正式补丁，供 Query 模块内部 Flush/Session 能力使用
 
 # ─────────────────────────── 工具库 ──────────────────────────────
 hutool = "5.8.47"              # hutool-crypto：国密 SM4、AES-CBC；hutool-core：通用工具
@@ -21,12 +20,12 @@ datasource-proxy = "1.11.0"      # datasource-proxy —— JDBC 代理层 SQL �
 druid = "1.2.28"              # Alibaba Druid 连接池 —— 与 HikariCP 二选一（可选）
 
 # ─────────────────────────── 测试 ────────────────────────────────
-junit = "6.1.2"                # JUnit 6.1 正式补丁线
+junit = "6.1.2"                # JUnit 6.1 最新已发布稳定补丁
 
 # ─────────────────────────── Gradle 插件 ─────────────────────────
 lombok-plugin = "9.5.0"        # Lombok Gradle 插件
 lombok = "1.18.46"             # Lombok 编译期处理器
-versions-plugin = "0.59.0"     # Ben Manes Versions Plugin：依赖更新检查
+versions-plugin = "0.61.0"     # Ben Manes Versions Plugin：依赖更新检查
 maven-publish-plugin = "0.37.0" # Vanniktech Maven Publish：Central Portal 上传与内存 GPG 签名
 
 
@@ -55,8 +54,8 @@ jakarta-validation-api = { group = "jakarta.validation", name = "jakarta.validat
 spring-boot-starter-validation = { group = "org.springframework.boot", name = "spring-boot-starter-validation" }
 
 # ═══════════════════════════ Hibernate ═══════════════════════════
-# Hibernate ORM 核心（仅 Query 模块内部 Flush 脏检查实现使用；2.0 显式覆盖到最新 Final）
-hibernate-core = { group = "org.hibernate.orm", name = "hibernate-core", version.ref = "hibernate" }
+# Hibernate ORM 核心（仅 Query 模块内部 Flush 脏检查实现使用；版本由 Spring Boot BOM 统一管理）
+hibernate-core = { group = "org.hibernate.orm", name = "hibernate-core" }
 
 # ═══════════════════════════ Spring Boot 扩展 ═══════════════════════════
 # Spring Boot 自动装配注解（@AutoConfiguration / @ConditionalOn*；版本由 Spring Boot BOM 统一管理）

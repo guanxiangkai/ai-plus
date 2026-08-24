@@ -37,7 +37,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import org.springframework.util.StringUtils;
-import reactor.core.publisher.Hooks;
 
 import java.util.List;
 
@@ -66,20 +65,12 @@ public class SecurityAutoConfiguration {
     @Autowired
     private SecurityPermitProperties permitProperties;
 
-    /**
-     * 启用 Reactor 自动上下文传播。
-     * <p>
-     * 必须在应用启动时调用，否则 {@link UserContextThreadLocalAccessor} 注册虽然生效，
-     * 但 Reactor 在 publishOn/subscribeOn 切换线程时不会自动 capture → restore ThreadLocal，
-     * 导致 {@link io.github.guanxiangkai.web.plus.security.util.SecurityUtils#getUserId()} 返回 null。
-     * </p>
-     */
+    /** 注册安全上下文适配器；Reactor 全局传播由 web-plus-core 统一启用。 */
     @PostConstruct
     public void enableReactorContextPropagation() {
-        Hooks.enableAutomaticContextPropagation();
         ContextRegistry.getInstance().registerThreadLocalAccessor(
                 new CurrentUserThreadLocalAccessor());
-        log.info("Reactor 自动上下文传播已启用（UserContext ThreadLocal 跨线程传播）");
+        log.info("安全上下文 ThreadLocal 传播适配器已注册");
     }
 
     @Bean("headerSecurityWebFilterChain")

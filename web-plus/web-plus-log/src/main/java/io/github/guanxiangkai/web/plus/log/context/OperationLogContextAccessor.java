@@ -14,8 +14,8 @@ import io.micrometer.context.ThreadLocalAccessor;
  * <h3>注册方式</h3>
  * <p>
  * 当 {@code web-plus.log.context-propagation-enabled=true}（默认开启）时，
- * 框架自动调用 {@code Hooks.enableAutomaticContextPropagation()} 并将此 Accessor
- * 注册到 {@code ContextRegistry}，<b>无需业务方手动配置</b>。
+ * web-plus-log 自动将此 Accessor 注册到 {@code ContextRegistry}；Reactor 自动传播由
+ * web-plus-core 在应用启动阶段统一启用，<b>无需业务方手动配置</b>。
  * </p>
  * <p>如需关闭自动注册，配置 {@code web-plus.log.context-propagation-enabled=false}，
  * 然后按需手动注册：</p>
@@ -72,4 +72,3 @@ public final class OperationLogContextAccessor implements ThreadLocalAccessor<Op
         }
     }
 }
-

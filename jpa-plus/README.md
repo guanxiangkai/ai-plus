@@ -1,9 +1,9 @@
 # JPA Plus
 
-> 🚀 基于 JDK 25 + Spring Boot 4.1.0 的企业级 JPA 增强框架
+> 🚀 基于 JDK 25 + Spring Boot 4.1.1 的企业级 JPA 增强框架
 
 ![JDK 25](https://img.shields.io/badge/JDK-25-blue)
-![Spring Boot 4.1.0](https://img.shields.io/badge/Spring%20Boot-4.1.0-green)
+![Spring Boot 4.1.1](https://img.shields.io/badge/Spring%20Boot-4.1.1-green)
 ![License Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-orange)
 
 ---
@@ -99,7 +99,7 @@ jpa-plus-starter      Spring Boot 自动装配入口（含审计、拦截器、�
 | 要求          | 最低版本                        |
 |-------------|-----------------------------|
 | JDK         | 25+                         |
-| Spring Boot | 4.1.0+                      |
+| Spring Boot | 4.1.1+                      |
 | Gradle      | 9.5+                        |
 
 ### 推荐方式：Starter

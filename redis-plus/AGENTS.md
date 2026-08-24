@@ -14,7 +14,7 @@
 
 ## 核心原则
 
-- 这是独立发布的企业级 Redis 增强框架，基线为 Oracle GraalVM 25.0.4 + Spring Boot 4.1.0。
+- 这是独立发布的企业级 Redis 增强框架，基线为 Oracle GraalVM 25.0.4 + Spring Boot 4.1.1。
 - 目标是保持模块化、可按需引入、可观测、可替换后端，不把业务系统逻辑写进框架。
 - 普通模块暴露 Redis 能力 API、注解、SPI 和实现；`redis-plus-*-starter` 负责单能力自动装配，`redis-plus-starter` 负责聚合。
 - 直接维护唯一有效的后端、API、SPI 和自动配置契约，不提供别名、双实现、静默降级或已弃用代理。调整契约时一次性同步所有调用方、文档、测试和示例。

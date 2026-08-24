@@ -1,22 +1,39 @@
 version: 2
 updates:
   - package-ecosystem: gradle
-    directory: /
+    directories:
+      - /
+      - /jpa-plus
+      - /redis-plus
+      - /web-plus
     schedule:
       interval: weekly
       day: monday
       time: "02:00"
       timezone: Asia/Shanghai
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     target-branch: main
+    commit-message:
+      prefix: build
+      include: scope
     groups:
       spring-platform:
         patterns:
           - "org.springframework*"
+          - "io.micrometer*"
+          - "io.projectreactor*"
       build-tooling:
         patterns:
           - "com.vanniktech*"
           - "com.github.ben-manes*"
+          - "io.github.ben-manes*"
+          - "io.freefair*"
+          - "net.ltgt*"
+      test-tooling:
+        patterns:
+          - "org.junit*"
+          - "org.testcontainers*"
+          - "com.tngtech.archunit*"
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -26,3 +43,6 @@ updates:
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
     target-branch: main
+    commit-message:
+      prefix: ci
+      include: scope

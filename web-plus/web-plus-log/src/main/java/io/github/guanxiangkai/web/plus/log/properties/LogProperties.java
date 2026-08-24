@@ -1,5 +1,6 @@
 package io.github.guanxiangkai.web.plus.log.properties;
 
+import io.github.guanxiangkai.web.plus.core.constant.WebPlusConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
@@ -22,14 +23,13 @@ public record LogProperties(
         Boolean aiLogEnabled,
         Boolean taskLogEnabled,
         /**
-         * 是否自动启用 Reactor 上下文传播并注册 {@code OperationLogContextAccessor}。
+         * 是否注册 {@code OperationLogContextAccessor}。
          * <p>
-         * 开启后框架会调用 {@code Hooks.enableAutomaticContextPropagation()} 并将
-         * {@code OperationLogContextAccessor} 注册到 {@code ContextRegistry}，
+         * 开启后框架会将 {@code OperationLogContextAccessor} 注册到 {@code ContextRegistry}，
          * 使 jpa-plus {@code DataAuditEvent} 监听器在 WebFlux 弹性调度线程上也能
          * 通过 {@code OperationLogContext.current()} 读取当前操作上下文，完成双表关联。
          * </p>
-         * <p>若项目已通过 {@code web-plus-security} 启用了上下文传播，重复调用幂等，默认 {@code true}。</p>
+         * <p>Reactor 与异步任务的全局传播由 web-plus-core 负责，默认 {@code true}。</p>
          */
         Boolean contextPropagationEnabled,
         String traceHeaderName,
@@ -60,7 +60,7 @@ public record LogProperties(
         if (aiLogEnabled == null) aiLogEnabled = true;
         if (taskLogEnabled == null) taskLogEnabled = true;
         if (contextPropagationEnabled == null) contextPropagationEnabled = true;
-        if (traceHeaderName == null) traceHeaderName = "X-Trace-Id";
+        if (traceHeaderName == null) traceHeaderName = WebPlusConstants.TRACE_ID_HEADER;
         if (ignorePaths == null) ignorePaths = List.of(
                 "/actuator/**", "/favicon.ico", "/v3/api-docs/**"
         );

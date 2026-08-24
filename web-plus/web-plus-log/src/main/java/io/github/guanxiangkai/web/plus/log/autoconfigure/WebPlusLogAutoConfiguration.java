@@ -1,11 +1,8 @@
 package io.github.guanxiangkai.web.plus.log.autoconfigure;
 
-import io.github.guanxiangkai.web.plus.core.spi.TraceIdGenerator;
 import io.github.guanxiangkai.web.plus.log.aspect.*;
 import io.github.guanxiangkai.web.plus.log.context.OperationLogContextAccessor;
-import io.github.guanxiangkai.web.plus.log.context.RequestContextThreadLocalAccessor;
 import io.github.guanxiangkai.web.plus.log.filter.AccessLogFilter;
-import io.github.guanxiangkai.web.plus.log.filter.TraceIdFilter;
 import io.github.guanxiangkai.web.plus.log.properties.LogProperties;
 import io.github.guanxiangkai.web.plus.log.spi.*;
 import io.github.guanxiangkai.web.plus.log.support.LogEntityBinder;
@@ -18,9 +15,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import reactor.core.publisher.Hooks;
-
-import java.util.UUID;
 
 /**
  * web-plus-log 自动装配
@@ -36,7 +30,7 @@ import java.util.UUID;
  *   <li>{@link ScheduleLogHandler} —— 定时任务日志持久化（{@code @ScheduleLog} 注解触发）</li>
  *   <li>{@link AiCallLogHandler} —— AI 调用日志持久化（{@code @AiLog} 注解触发）</li>
  *   <li>{@link TaskLogHandler} —— 自定义任务日志持久化（{@code @TaskLog} 注解触发）</li>
- *   <li>{@link TraceIdGenerator} —— TraceId 生成策略（可替换为雪花算法/SkyWalking ID）</li>
+ *   <li>{@link io.github.guanxiangkai.web.plus.core.spi.TraceIdGenerator} —— TraceId 生成策略</li>
  * </ul>
  *
  * @author guanxiangkai
@@ -51,23 +45,6 @@ public class WebPlusLogAutoConfiguration {
 
     public WebPlusLogAutoConfiguration() {
         log.info("[web-plus] Log 模块已启用");
-    }
-
-    /**
-     * 默认 TraceId 生成器（UUID，可被业务方 Bean 覆盖）
-     */
-    @Bean
-    @ConditionalOnMissingBean(TraceIdGenerator.class)
-    public TraceIdGenerator traceIdGenerator() {
-        return () -> UUID.randomUUID().toString().replace("-", "");
-    }
-
-    /**
-     * TraceId 过滤器（最高优先级）
-     */
-    @Bean
-    public TraceIdFilter traceIdFilter(TraceIdGenerator generator, LogProperties props) {
-        return new TraceIdFilter(generator, props.traceHeaderName());
     }
 
     private static Class<?> resolveClass(String className, String configKey) {
@@ -119,23 +96,20 @@ public class WebPlusLogAutoConfiguration {
      * Micrometer ThreadLocalAccessor（WebFlux + 阻塞 JPA 场景的操作上下文传播）
      *
      * <p>
-     * 当 {@code web-plus.log.context-propagation-enabled=true}（默认）时，
-     * 自动调用 {@code Hooks.enableAutomaticContextPropagation()} 并将此 Accessor
+     * 当 {@code web-plus.log.context-propagation-enabled=true}（默认）时，将此 Accessor
      * 注册到 {@code ContextRegistry}，使 jpa-plus {@code DataAuditEvent} 监听器
      * 在弹性调度线程（如阻塞 JPA 操作）上也能通过
      * {@link io.github.guanxiangkai.web.plus.log.context.OperationLogContext#current()} 读取当前操作 ID。
      * </p>
-     * <p>若项目已通过 {@code web-plus-security} 启用了上下文传播，重复调用幂等，无副作用。</p>
+     * <p>Reactor 与异步任务的全局传播由 {@code web-plus-core} 统一启用。</p>
      */
     @Bean
     @ConditionalOnMissingBean(OperationLogContextAccessor.class)
     public OperationLogContextAccessor operationLogContextAccessor(LogProperties props) {
         OperationLogContextAccessor accessor = new OperationLogContextAccessor();
         if (Boolean.TRUE.equals(props.contextPropagationEnabled())) {
-            Hooks.enableAutomaticContextPropagation();
             ContextRegistry.getInstance().registerThreadLocalAccessor(accessor);
-            ContextRegistry.getInstance().registerThreadLocalAccessor(new RequestContextThreadLocalAccessor());
-            log.info("[web-plus] OperationLog/RequestContext 上下文传播已启用（web-plus.log.context-propagation-enabled=false 可关闭）");
+            log.info("[web-plus] OperationLog 上下文传播已启用（web-plus.log.context-propagation-enabled=false 可关闭）");
         }
         return accessor;
     }

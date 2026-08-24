@@ -6,7 +6,7 @@
 [versions]
 
 # ─────────────────────────── Spring 体系 ───────────────────────────
-spring-boot = "4.1.0"          # Spring Boot 4.1 基线；带入 Spring Framework 7.0.8、Spring Data Redis 2026.0.0 与 Jackson 3.1.4，需重点验证 Redis 自动配置与序列化兼容性
+spring-boot = "4.1.1"          # Spring Boot 4.1.1 稳定补丁；带入 Spring Framework 7.0.9、Spring Data Redis 2026.0.1 与 Jackson 3.1.5，需重点验证 Redis 自动配置与序列化兼容性
 
 # ─────────────────────────── 测试 ────────────────────────────────
 junit = "6.1.2"                # JUnit 6.1 正式补丁线
@@ -14,7 +14,7 @@ junit = "6.1.2"                # JUnit 6.1 正式补丁线
 # ─────────────────────────── Gradle 插件 ─────────────────────────
 lombok-plugin = "9.5.0"         # Lombok Gradle 插件
 testcontainers = "2.0.5"       # Testcontainers Java：集成测试容器编排
-archunit = "1.5.0"             # ArchUnit：JVM 架构约束测试
+archunit = "1.4.2"             # ArchUnit：最新已发布稳定版；1.5.0 尚未发布，禁止使用不存在的坐标
 hutool = "5.8.47"              # Hutool Core：内部工具辅助，禁止进入公共 API
 redisson = "4.7.0"             # Redisson：正式分布式 Redis 原语后端；需验证锁、限流与 Spring Data Redis 2026 组合兼容性
 bucket4j = "8.19.0"            # Bucket4j：可选令牌桶限流后端
