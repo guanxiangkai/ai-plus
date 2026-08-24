@@ -43,6 +43,12 @@ Maven Central 的公开制品无需读取凭据。版本以本仓库的模块版
 ./gradlew publishToMavenLocalAll --no-daemon
 ```
 
+## 依赖治理
+
+Gradle Wrapper、三个能力族的 Version Catalog 与 GitHub Actions 由
+`.github/dependabot.yml` 每周统一检查。Spring Boot BOM 管理的依赖不再重复锁定单独版本；
+框架、插件和测试工具更新通过独立 Pull Request 进入完整 `buildAll` 质量门禁。
+
 ## 发布
 
 提交并晋级到 `main` 后，可在 GitHub Actions 手工运行“发布 Maven 模块”并输入模块清单；`v*` 标签会发布全部模块。实际发布版本以 `gradle/module-versions.properties` 为准。

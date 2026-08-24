@@ -1,9 +1,9 @@
 <p align="center">
   <h1 align="center">Redis Plus</h1>
-  <p align="center">🚀 基于 JDK 25 + Spring Boot 4.1.0 的企业级 Redis 增强框架</p>
+  <p align="center">🚀 基于 JDK 25 + Spring Boot 4.1.1 的企业级 Redis 增强框架</p>
   <p align="center">
     <img src="https://img.shields.io/badge/JDK-25-blue" alt="JDK 25"/>
-    <img src="https://img.shields.io/badge/Spring%20Boot-4.1.0-green" alt="Spring Boot 4.1.0"/>
+    <img src="https://img.shields.io/badge/Spring%20Boot-4.1.1-green" alt="Spring Boot 4.1.1"/>
     <img src="https://img.shields.io/badge/License-Apache%202.0-orange" alt="License"/>
     <img src="https://img.shields.io/badge/Version-1.0.1-brightgreen" alt="Version"/>
   </p>
@@ -89,8 +89,8 @@
 | 项目          | 版本                |
 |-------------|-------------------|
 | JDK         | `25`              |
-| Spring Boot | `4.1.0+`          |
-| Gradle      | `9.6.1`（Kotlin DSL） |
+| Spring Boot | `4.1.1+`          |
+| Gradle      | `9.7.1`（Kotlin DSL） |
 
 > 构建使用 JDK 25 toolchain，不需要 `--enable-preview`。
 

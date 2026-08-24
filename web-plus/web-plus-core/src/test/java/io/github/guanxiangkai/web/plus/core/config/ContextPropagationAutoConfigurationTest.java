@@ -33,6 +33,8 @@ class ContextPropagationAutoConfigurationTest {
                     .submit(RequestContextHolder::get);
 
             assertThat(child.get()).isEqualTo(parent);
+            assertThat(virtualThreads.applicationTaskExecutor()
+                    .submit(() -> Thread.currentThread().isVirtual()).get()).isTrue();
             assertThat(RequestContextHolder.get()).isEqualTo(parent);
         } finally {
             RequestContextHolder.clear();

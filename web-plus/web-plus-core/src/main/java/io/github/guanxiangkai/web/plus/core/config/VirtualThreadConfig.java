@@ -1,25 +1,20 @@
 package io.github.guanxiangkai.web.plus.core.config;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.aot.hint.RuntimeHints;
-import org.springframework.aot.hint.RuntimeHintsRegistrar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.context.annotation.Primary;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskDecorator;
 import org.springframework.core.task.support.ContextPropagatingTaskDecorator;
-import org.springframework.core.task.support.TaskExecutorAdapter;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 /**
  * 虚拟线程配置
@@ -27,8 +22,8 @@ import java.util.concurrent.Executors;
  * GraalVM JDK 25 + Spring Boot 4 特性：
  * 1. Virtual Threads（JDK 21+）- 轻量级线程
  * 2. 继承 Spring Boot 自动配置，添加虚拟线程支持
- * 3. 支持百万级并发
- * 4. GraalVM Native Image 优化
+ * 3. 按任务创建轻量虚拟线程
+ * 4. 使用 Spring Framework 原生虚拟线程执行器生命周期
  * </p>
  * <p>
  * 优势：
@@ -47,10 +42,8 @@ import java.util.concurrent.Executors;
  * @author guanxiangkai
  * @since 1.0.0
  */
-@Slf4j
 @EnableAsync
 @AutoConfiguration(after = TaskExecutionAutoConfiguration.class)
-@ImportRuntimeHints(VirtualThreadConfig.VirtualThreadHints.class)
 @ConditionalOnProperty(name = "spring.threads.virtual.enabled", havingValue = "true", matchIfMissing = true)
 public class VirtualThreadConfig implements AsyncConfigurer {
 
@@ -81,9 +74,10 @@ public class VirtualThreadConfig implements AsyncConfigurer {
     public VirtualThreadConfig(
             @Qualifier(ContextPropagationAutoConfiguration.TASK_DECORATOR_BEAN_NAME)
             TaskDecorator taskDecorator) {
-        TaskExecutorAdapter adapter = new TaskExecutorAdapter(Executors.newVirtualThreadPerTaskExecutor());
-        adapter.setTaskDecorator(taskDecorator);
-        this.virtualThreadExecutor = adapter;
+        SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("web-plus-virtual-");
+        executor.setVirtualThreads(true);
+        executor.setTaskDecorator(taskDecorator);
+        this.virtualThreadExecutor = executor;
     }
 
     /**
@@ -101,26 +95,5 @@ public class VirtualThreadConfig implements AsyncConfigurer {
     @Override
     public Executor getAsyncExecutor() {
         return virtualThreadExecutor;
-    }
-
-    /**
-     * GraalVM Native Image 运行时提示
-     */
-    static class VirtualThreadHints implements RuntimeHintsRegistrar {
-        @Override
-        public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
-            // 注册虚拟线程相关类
-            hints.reflection()
-                    .registerType(Thread.class, hint -> hint
-                            .withMembers(
-                                    org.springframework.aot.hint.MemberCategory.INVOKE_PUBLIC_METHODS
-                            ));
-
-            hints.reflection()
-                    .registerType(Executors.class, hint -> hint
-                            .withMembers(
-                                    org.springframework.aot.hint.MemberCategory.INVOKE_PUBLIC_METHODS
-                            ));
-        }
     }
 }
