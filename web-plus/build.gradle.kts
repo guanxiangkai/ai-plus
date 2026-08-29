@@ -29,7 +29,7 @@ allprojects {
     tasks.withType<JavaCompile>().configureEach {
         options.release.set(jdkRelease)
         options.encoding = encoding.get()
-        options.compilerArgs.addAll(listOf("-parameters", "-Xlint:deprecation"))
+        options.compilerArgs.addAll(listOf("-parameters", "-Xlint:deprecation", "-Werror"))
     }
 }
 
