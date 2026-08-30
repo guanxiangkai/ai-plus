@@ -7,17 +7,17 @@
 
 # ─────────────────────────── Spring 体系 ───────────────────────────
 spring-boot = "4.1.1"          # Spring Boot 4.1.1 稳定补丁，统一托管 Spring Framework 7.0.9、Spring Data 2026.0.1、Security 7.1.1、Jackson 3.1.5 等版本；需重点验证自动配置和安全链路
-spring-cloud = "2025.1.2"      # Spring Cloud 2025.1 补丁线，供 web-plus-mq 的 Stream Kafka 依赖使用；需关注 Stream 5.0.2 与 Boot 4.1 的兼容性
+spring-cloud = "2025.1.3"      # Spring Cloud 2025.1 当前稳定补丁，供 web-plus-mq 的 Stream Kafka 依赖使用
 
 # ─────────────────────────── Web / 文档 / 文件处理 ─────────────────
 springdoc = "3.1.0"            # SpringDoc OpenAPI WebFlux UI，供 web-plus-doc 和 web-plus-web 使用
-swagger-core = "2.2.53"        # Swagger Core 注解，供 web-plus-core 的 DTO/VO Schema 元数据使用；需与 SpringDoc 传递版本保持兼容
+swagger-core = "2.2.54"        # Swagger Core 当前稳定补丁，供 web-plus-core 的 DTO/VO Schema 元数据使用
 fastexcel = "1.3.0"            # FastExcel 导入导出，供 web-plus-excel 使用
 poi = "5.5.1"                  # Apache POI，供 Excel/Office 扩展能力使用；升级需验证 FastExcel 读写兼容性
 
 # ─────────────────────────── 安全 / 映射 / 工具库 ───────────────────
 jjwt = "0.13.0"                # JJWT，供 web-plus-security 的 Token 签发与解析使用；升级需验证 JWT 构造、解析和异常类型兼容性
-mapstruct-plus = "1.5.1"       # MapStruct Plus，供 web-plus-web 暴露对象映射集成
+mapstruct-plus = "1.5.2"       # MapStruct Plus 当前稳定版，供 web-plus-web 暴露对象映射集成
 hutool = "5.8.47"              # Hutool 工具集，供 web-plus-core 的通用工具能力使用
 bouncycastle = "1.85.2"        # Bouncy Castle 最新稳定安全补丁，供 web-plus-web 接口加密默认 SM4-CBC-SM3 策略运行时使用
 
@@ -25,7 +25,7 @@ bouncycastle = "1.85.2"        # Bouncy Castle 最新稳定安全补丁，供 we
 powerjob = "5.1.2"             # PowerJob Worker SDK，供 web-plus-job 公共处理器使用
 
 # ─────────────────────────── 测试 ────────────────────────────────
-junit = "6.1.2"                # JUnit 6.1 最新已发布稳定补丁
+junit = "6.1.3"                # JUnit 6.1 当前稳定补丁
 
 # ─────────────────────────── Gradle 插件 ─────────────────────────
 lombok-plugin = "9.5.0"        # Lombok Gradle 插件
