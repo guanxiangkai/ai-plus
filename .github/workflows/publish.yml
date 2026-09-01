@@ -71,6 +71,12 @@ jobs:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.MAVEN_SIGNING_KEY_ID }}
+          MAVEN_SIGNING_KEY_ID: ${{ secrets.MAVEN_SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_SIGNING_PASSWORD }}
-        run: ./gradlew publishSelected -PreleaseModules="$RELEASE_MODULES" --no-daemon --stacktrace
+        run: |
+          set -euo pipefail
+          # 主密钥可自动识别；只有签名子密钥需要显式 Key ID，禁止向 Gradle 传入空值。
+          if [[ -n "$MAVEN_SIGNING_KEY_ID" ]]; then
+            export ORG_GRADLE_PROJECT_signingInMemoryKeyId="$MAVEN_SIGNING_KEY_ID"
+          fi
+          ./gradlew publishSelected -PreleaseModules="$RELEASE_MODULES" --no-daemon --stacktrace
