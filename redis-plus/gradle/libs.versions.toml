@@ -20,7 +20,7 @@ redisson = "4.7.0"             # Redisson：正式分布式 Redis 原语后端�
 bucket4j = "8.19.0"            # Bucket4j：可选令牌桶限流后端
 errorprone = "2.50.0"          # Error Prone：编译期缺陷模式检查；升级可能新增诊断，配合 -Werror 会直接阻断编译
 nullaway = "0.13.8"            # NullAway：基于 Error Prone 的空值检查；升级可能收紧空值推断，需以全量编译验证
-errorprone-plugin = "5.1.0"    # Error Prone Gradle 插件
+errorprone-plugin = "5.1.1"    # Error Prone Gradle 插件
 maven-publish-plugin = "0.37.0" # Vanniktech Maven Publish：Central Portal 上传与内存 GPG 签名
 
 # ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
