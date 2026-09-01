@@ -118,6 +118,38 @@ class ApiCryptoServiceTest {
     }
 
     @Test
+    void shouldRejectEnvelopeAlgorithmOutsideConfiguredPolicy() {
+        ApiCryptoService aesService = createService(ApiCryptoProperties.Strategy.AES_GCM_V1, true, false);
+        ApiCryptoService sm4Service = createService(ApiCryptoProperties.Strategy.SM4_CBC_SM3_V1, true, false);
+        ApiCryptoEnvelope aesEnvelope = aesService.encryptRequestValue(Map.of("name", "张三"));
+
+        assertThatThrownBy(() -> sm4Service.decryptRequestEnvelopeToJson(aesEnvelope))
+                .isInstanceOf(ApiCryptoException.class)
+                .hasMessageContaining("接口加密策略不匹配")
+                .hasMessageContaining("SM4_CBC_SM3_V1")
+                .hasMessageContaining("AES_GCM_V1");
+    }
+
+    @Test
+    void shouldRejectUnsupportedEnvelopeAlgorithmAsCryptoError() {
+        ApiCryptoService service = createService(ApiCryptoProperties.Strategy.SM4_CBC_SM3_V1, true, false);
+        ApiCryptoEnvelope current = service.encryptRequestValue(Map.of("name", "张三"));
+        ApiCryptoEnvelope unsupported = new ApiCryptoEnvelope(
+                current.encrypted(),
+                current.version(),
+                "UNKNOWN",
+                current.keyId(),
+                current.iv(),
+                current.salt(),
+                current.data(),
+                current.tag());
+
+        assertThatThrownBy(() -> service.decryptRequestEnvelopeToJson(unsupported))
+                .isInstanceOf(ApiCryptoException.class)
+                .hasMessageContaining("不支持的算法");
+    }
+
+    @Test
     void shouldRequireKeysOnlyWhenDirectionIsEnabled() {
         ApiCryptoProperties properties = new ApiCryptoProperties();
         properties.setEnabled(true);

@@ -49,7 +49,7 @@ class ReadOnlyBaseControllerTest {
     }
 
     @Test
-    void shouldDeclareTheSameSecurityLogAndCryptoContractAsCrudQueries() throws NoSuchMethodException {
+    void shouldDeclareSecurityLogAndStandardJsonContractForCrudQueries() throws NoSuchMethodException {
         assertQueryContract("list", PageQuery.class, "#{getPermissionPrefix() + ':list'}");
         assertQueryContract("detail", String.class, "#{getPermissionPrefix() + ':query'}");
     }
@@ -89,10 +89,7 @@ class ReadOnlyBaseControllerTest {
 
         assertThat(method.getAnnotation(RequiresPermission.class).value()).containsExactly(permission);
         assertThat(method.getAnnotation(OperationLog.class)).isNotNull();
-        ApiCrypto crypto = method.getAnnotation(ApiCrypto.class);
-        assertThat(crypto).isNotNull();
-        assertThat(crypto.request()).isTrue();
-        assertThat(crypto.response()).isTrue();
+        assertThat(method.getAnnotation(ApiCrypto.class)).isNull();
     }
 
     private static final class TestController extends ReadOnlyBaseController<TestQuery, String, DetailView> {

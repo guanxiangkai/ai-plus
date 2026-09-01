@@ -14,15 +14,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class BaseControllerApiCryptoAnnotationTest {
 
     @Test
-    void shouldEncryptJsonCrudEndpoints() throws NoSuchMethodException {
-        assertEncrypted("list", PageQuery.class);
-        assertEncrypted("detail", String.class);
-        assertEncrypted("create", Object.class);
-        assertEncrypted("update", String.class, Object.class);
-        assertEncrypted("updateEnabled", String.class, Boolean.class);
-        assertEncrypted("batchUpdateEnabled", List.class, Boolean.class);
-        assertEncrypted("delete", String.class);
-        assertEncrypted("batchDelete", List.class);
+    void shouldKeepBaseCrudEndpointsAsStandardJson() throws NoSuchMethodException {
+        assertPlain("list", PageQuery.class);
+        assertPlain("detail", String.class);
+        assertPlain("create", Object.class);
+        assertPlain("update", String.class, Object.class);
+        assertPlain("updateEnabled", String.class, Boolean.class);
+        assertPlain("batchUpdateEnabled", List.class, Boolean.class);
+        assertPlain("delete", String.class);
+        assertPlain("batchDelete", List.class);
     }
 
     @Test
@@ -39,14 +39,6 @@ class BaseControllerApiCryptoAnnotationTest {
         assertDeclaredMethodAbsent("exportToExcel", List.class);
         assertDeclaredMethodAbsent("exportToWord", List.class);
         assertDeclaredMethodAbsent("exportToPdf", List.class);
-    }
-
-    private void assertEncrypted(String methodName, Class<?>... parameterTypes) throws NoSuchMethodException {
-        ApiCrypto annotation = method(methodName, parameterTypes).getAnnotation(ApiCrypto.class);
-
-        assertThat(annotation).isNotNull();
-        assertThat(annotation.request()).isTrue();
-        assertThat(annotation.response()).isTrue();
     }
 
     private void assertPlain(String methodName, Class<?>... parameterTypes) throws NoSuchMethodException {

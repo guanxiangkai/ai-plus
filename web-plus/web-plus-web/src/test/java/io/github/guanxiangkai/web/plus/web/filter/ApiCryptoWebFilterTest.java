@@ -1,34 +1,39 @@
 package io.github.guanxiangkai.web.plus.web.filter;
 
+import io.github.guanxiangkai.web.plus.web.annotation.ApiCrypto;
 import io.github.guanxiangkai.web.plus.web.crypto.ApiCryptoEnvelope;
 import io.github.guanxiangkai.web.plus.web.crypto.ApiCryptoEndpointRegistry;
-import io.github.guanxiangkai.web.plus.web.crypto.ApiCryptoEndpointRule;
 import io.github.guanxiangkai.web.plus.web.crypto.ApiCryptoPublicConfig;
 import io.github.guanxiangkai.web.plus.web.crypto.ApiCryptoRuntimePolicy;
 import io.github.guanxiangkai.web.plus.web.crypto.ApiCryptoService;
 import io.github.guanxiangkai.web.plus.web.properties.ApiCryptoProperties;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
-import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.util.unit.DataSize;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.reactive.result.method.RequestMappingInfo;
+import org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
-import org.springframework.util.unit.DataSize;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -85,6 +90,90 @@ class ApiCryptoWebFilterTest {
     }
 
     @Test
+    void shouldDecryptQueryBeforeResolvingParamsCondition() {
+        ApiCryptoService service = createService(true, false);
+        ApiCryptoWebFilter filter = createFilter(service, parameterizedRegistry(false));
+        String queryValue = service.serializeEnvelopeToBase64Url(
+                service.encryptRequestValue(Map.of("tenant", "tenant-a")));
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/search")
+                        .queryParam(ApiCryptoService.CRYPTO_QUERY_PARAM, queryValue)
+                        .build()
+        );
+        AtomicReference<ServerWebExchange> captured = new AtomicReference<>();
+
+        filter.filter(exchange, filteredExchange -> {
+            captured.set(filteredExchange);
+            return Mono.empty();
+        }).block();
+
+        assertThat(captured.get()).isNotNull();
+        assertThat(captured.get().getRequest().getQueryParams().getFirst("tenant")).isEqualTo("tenant-a");
+        assertThat(captured.get().getRequest().getQueryParams())
+                .doesNotContainKey(ApiCryptoService.CRYPTO_QUERY_PARAM);
+    }
+
+    @Test
+    void shouldPreferEncryptedParamEndpointOverPlainFallback() {
+        ApiCryptoService service = createService(true, false);
+        ApiCryptoWebFilter filter = createFilter(service, parameterizedRegistryWithPlainFallback());
+        String queryValue = service.serializeEnvelopeToBase64Url(
+                service.encryptRequestValue(Map.of("tenant", "tenant-a")));
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/search")
+                        .queryParam(ApiCryptoService.CRYPTO_QUERY_PARAM, queryValue)
+                        .build()
+        );
+        AtomicReference<ServerWebExchange> captured = new AtomicReference<>();
+
+        filter.filter(exchange, filteredExchange -> {
+            captured.set(filteredExchange);
+            return Mono.empty();
+        }).block();
+
+        assertThat(captured.get()).isNotNull();
+        assertThat(captured.get().getRequest().getQueryParams().getFirst("tenant")).isEqualTo("tenant-a");
+    }
+
+    @Test
+    void shouldRejectEncryptedQueryThatRoutesToPlainEndpoint() {
+        ApiCryptoService service = createService(true, false);
+        ApiCryptoWebFilter filter = createFilter(service, parameterizedRegistry(true));
+        String queryValue = service.serializeEnvelopeToBase64Url(
+                service.encryptRequestValue(Map.of("source", "dify")));
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/search")
+                        .queryParam(ApiCryptoService.CRYPTO_QUERY_PARAM, queryValue)
+                        .build()
+        );
+
+        assertThatThrownBy(() -> filter.filter(exchange, ignored -> Mono.empty()).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("接口加密查询参数匹配到未授权端点");
+    }
+
+    @Test
+    void shouldKeepPlainDifyEndpointAvailable() {
+        ApiCryptoService service = createService(true, true);
+        ApiCryptoWebFilter filter = createFilter(service, parameterizedRegistry(true));
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/search")
+                        .queryParam("source", "dify")
+                        .build()
+        );
+        AtomicReference<ServerWebExchange> captured = new AtomicReference<>();
+
+        filter.filter(exchange, filteredExchange -> {
+            captured.set(filteredExchange);
+            return Mono.empty();
+        }).block();
+
+        assertThat(captured.get()).isNotNull();
+        assertThat(captured.get().getRequest().getQueryParams().getFirst("source")).isEqualTo("dify");
+        assertThat(exchange.getResponse().getHeaders().getFirst(ApiCryptoService.CRYPTO_HEADER)).isNull();
+    }
+
+    @Test
     void shouldDecryptEncryptedJsonBody() throws Exception {
         ApiCryptoService service = createService(true, false);
         ApiCryptoWebFilter filter = createFilter(service, true, false);
@@ -120,6 +209,77 @@ class ApiCryptoWebFilterTest {
         assertThatThrownBy(() -> filter.filter(exchange, chain).block())
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("接口加密请求体格式不合法");
+    }
+
+    @Test
+    void shouldRejectNonJsonBodyWhenRequestCryptoEnabled() {
+        ApiCryptoService service = createService(true, false);
+        ApiCryptoWebFilter filter = createFilter(service, true, false);
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/save")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body("plain-text")
+        );
+
+        assertThatThrownBy(() -> filter.filter(exchange, ignored -> Mono.empty()).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("接口加密请求体必须使用 JSON 媒体类型");
+    }
+
+    @Test
+    void shouldRejectBodyWithoutContentTypeWhenRequestCryptoEnabled() {
+        ApiCryptoService service = createService(true, false);
+        ApiCryptoWebFilter filter = createFilter(service, true, false);
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/save").body("plain-text")
+        );
+
+        assertThatThrownBy(() -> filter.filter(exchange, ignored -> Mono.empty()).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("接口加密请求体必须使用 JSON 媒体类型");
+    }
+
+    @Test
+    void shouldAllowBodyMethodWithoutPayload() {
+        ApiCryptoService service = createService(true, false);
+        ApiCryptoWebFilter filter = createFilter(service, true, false);
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/action").build()
+        );
+        AtomicReference<ServerWebExchange> captured = new AtomicReference<>();
+
+        filter.filter(exchange, filteredExchange -> {
+            captured.set(filteredExchange);
+            return Mono.empty();
+        }).block();
+
+        assertThat(captured.get()).isNotNull();
+    }
+
+    @Test
+    void shouldRejectUnknownEnvelopeAlgorithmForBodyAndQuery() throws Exception {
+        ApiCryptoService service = createService(true, false);
+        ApiCryptoWebFilter filter = createFilter(service, true, false);
+        ApiCryptoEnvelope unsupported = withAlgorithm(
+                service.encryptRequestValue(Map.of("name", "张三")), "UNKNOWN");
+        MockServerWebExchange bodyExchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/save")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(objectMapper.writeValueAsString(unsupported))
+        );
+        MockServerWebExchange queryExchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/search")
+                        .queryParam(ApiCryptoService.CRYPTO_QUERY_PARAM,
+                                service.serializeEnvelopeToBase64Url(unsupported))
+                        .build()
+        );
+
+        assertThatThrownBy(() -> filter.filter(bodyExchange, ignored -> Mono.empty()).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("接口加密请求校验失败");
+        assertThatThrownBy(() -> filter.filter(queryExchange, ignored -> Mono.empty()).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("接口加密请求校验失败");
     }
 
     @Test
@@ -170,7 +330,7 @@ class ApiCryptoWebFilterTest {
     }
 
     @Test
-    void shouldSkipJsonResponseWhenDataIsNull() {
+    void shouldEncryptJsonResponseWhenDataIsNull() throws Exception {
         ApiCryptoService service = createService(false, true);
         ApiCryptoWebFilter filter = createFilter(service, false, true);
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.delete("/api/delete/1").build());
@@ -185,9 +345,12 @@ class ApiCryptoWebFilterTest {
 
         filter.filter(exchange, chain).block();
 
-        assertThat(exchange.getResponse().getHeaders().getFirst(ApiCryptoService.CRYPTO_HEADER)).isNull();
-        assertThat(exchange.getResponse().getBodyAsString().block()).contains("\"code\":200");
-        assertThat(exchange.getResponse().getBodyAsString().block()).contains("\"data\":null");
+        assertThat(exchange.getResponse().getHeaders().getFirst(ApiCryptoService.CRYPTO_HEADER))
+                .isEqualTo(ApiCryptoProperties.Strategy.SM4_CBC_SM3_V1.name());
+        JsonNode response = objectMapper.readTree(exchange.getResponse().getBodyAsString().block());
+        ApiCryptoEnvelope envelope = objectMapper.treeToValue(response.get("data"), ApiCryptoEnvelope.class);
+        assertThat(objectMapper.readTree(service.decryptResponseEnvelopeToJson(envelope)).isNull()).isTrue();
+        assertThat(response.get("code").asInt()).isEqualTo(200);
     }
 
     @Test
@@ -211,7 +374,7 @@ class ApiCryptoWebFilterTest {
     }
 
     @Test
-    void shouldKeepStreamingJsonUnaggregatedAndUnencrypted() {
+    void shouldRejectStreamingJsonWhenResponseCryptoIsRequired() {
         ApiCryptoService service = createService(false, true);
         ApiCryptoWebFilter filter = createFilter(service, false, true);
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/stream").build());
@@ -223,11 +386,100 @@ class ApiCryptoWebFilterTest {
                     filteredExchange.getResponse().bufferFactory().wrap(body)));
         };
 
-        filter.filter(exchange, chain).block();
+        assertThatThrownBy(() -> filter.filter(exchange, chain).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("接口响应媒体类型不支持载荷加密");
+    }
 
+    @Test
+    void shouldRejectPlainTextWhenResponseCryptoIsRequired() {
+        ApiCryptoService service = createService(false, true);
+        ApiCryptoWebFilter filter = createFilter(service, false, true);
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/text").build());
+        WebFilterChain chain = filteredExchange -> {
+            filteredExchange.getResponse().getHeaders().setContentType(MediaType.TEXT_PLAIN);
+            byte[] body = "plain-text".getBytes(StandardCharsets.UTF_8);
+            return filteredExchange.getResponse().writeWith(Mono.just(
+                    filteredExchange.getResponse().bufferFactory().wrap(body)));
+        };
+
+        assertThatThrownBy(() -> filter.filter(exchange, chain).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("接口响应媒体类型不支持载荷加密");
+    }
+
+    @Test
+    void shouldRejectEmptyPlainTextWhenResponseCryptoIsRequired() {
+        ApiCryptoService service = createService(false, true);
+        ApiCryptoWebFilter filter = createFilter(service, false, true);
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/text").build());
+        WebFilterChain chain = filteredExchange -> {
+            filteredExchange.getResponse().getHeaders().setContentType(MediaType.TEXT_PLAIN);
+            return filteredExchange.getResponse().writeWith(Mono.empty());
+        };
+
+        assertThatThrownBy(() -> filter.filter(exchange, chain).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("接口响应媒体类型不支持载荷加密");
+    }
+
+    @Test
+    void shouldRejectEmptyJsonWhenResponseCryptoIsRequired() {
+        ApiCryptoService service = createService(false, true);
+        ApiCryptoWebFilter filter = createFilter(service, false, true);
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/empty").build());
+        WebFilterChain chain = filteredExchange -> {
+            filteredExchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+            return filteredExchange.getResponse().writeWith(Mono.empty());
+        };
+
+        assertThatThrownBy(() -> filter.filter(exchange, chain).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("接口响应缺少可加密载荷");
+    }
+
+    @Test
+    void shouldRejectSuccessfulResponseCompletedWithoutBody() {
+        ApiCryptoService service = createService(false, true);
+        ApiCryptoWebFilter filter = createFilter(service, false, true);
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/empty").build());
+
+        assertThatThrownBy(() -> filter.filter(
+                        exchange, filteredExchange -> filteredExchange.getResponse().setComplete()).block())
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("接口响应缺少可加密载荷");
+    }
+
+    @Test
+    void shouldAllowNoContentResponseWithoutCryptoEnvelope() {
+        ApiCryptoService service = createService(false, true);
+        ApiCryptoWebFilter filter = createFilter(service, false, true);
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.delete("/api/delete/1").build());
+
+        filter.filter(exchange, filteredExchange -> {
+            filteredExchange.getResponse().setStatusCode(HttpStatus.NO_CONTENT);
+            return filteredExchange.getResponse().setComplete();
+        }).block();
+
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(exchange.getResponse().getHeaders().getFirst(ApiCryptoService.CRYPTO_HEADER)).isNull();
-        assertThat(exchange.getResponse().getBodyAsString().block())
-                .isEqualTo("{\"event\":1}\n{\"event\":2}\n");
+    }
+
+    @Test
+    void shouldAllowHeadResponseWithoutCryptoEnvelope() {
+        ApiCryptoService service = createService(false, true);
+        ApiCryptoWebFilter filter = createFilter(service, false, true);
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.head("/api/detail").build());
+
+        filter.filter(
+                exchange, filteredExchange -> filteredExchange.getResponse().setComplete()).block();
+
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+        assertThat(exchange.getResponse().getHeaders().getFirst(ApiCryptoService.CRYPTO_HEADER)).isNull();
     }
 
     @Test
@@ -277,12 +529,13 @@ class ApiCryptoWebFilterTest {
     }
 
     @Test
-    void shouldSkipInternalPath() {
+    void shouldProcessExplicitInternalApiCryptoRule() throws Exception {
         ApiCryptoService service = createService(true, true);
         ApiCryptoWebFilter filter = createFilter(service, true, true);
+        String queryValue = service.serializeEnvelopeToBase64Url(service.encryptRequestValue(Map.of("username", "admin")));
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/internal/user/findByUsername")
-                        .queryParam("username", "admin")
+                        .queryParam(ApiCryptoService.CRYPTO_QUERY_PARAM, queryValue)
                         .build()
         );
         AtomicReference<ServerWebExchange> captured = new AtomicReference<>();
@@ -299,8 +552,12 @@ class ApiCryptoWebFilterTest {
         filter.filter(exchange, chain).block();
 
         assertThat(captured.get().getRequest().getQueryParams().getFirst("username")).isEqualTo("admin");
-        assertThat(exchange.getResponse().getHeaders().getFirst(ApiCryptoService.CRYPTO_HEADER)).isNull();
-        assertThat(exchange.getResponse().getBodyAsString().block()).contains("\"username\":\"admin\"");
+        assertThat(exchange.getResponse().getHeaders().getFirst(ApiCryptoService.CRYPTO_HEADER))
+                .isEqualTo(ApiCryptoProperties.Strategy.SM4_CBC_SM3_V1.name());
+        JsonNode response = objectMapper.readTree(exchange.getResponse().getBodyAsString().block());
+        ApiCryptoEnvelope envelope = objectMapper.treeToValue(response, ApiCryptoEnvelope.class);
+        assertThat(objectMapper.readTree(service.decryptResponseEnvelopeToJson(envelope)).get("username").asString())
+                .isEqualTo("admin");
     }
 
     @Test
@@ -351,6 +608,17 @@ class ApiCryptoWebFilterTest {
         return new ApiCryptoWebFilter(service, objectMapper, matchingRegistry(request, response), policy, scheduler);
     }
 
+    private ApiCryptoWebFilter createFilter(
+            ApiCryptoService service,
+            ApiCryptoEndpointRegistry registry) {
+        return new ApiCryptoWebFilter(
+                service,
+                objectMapper,
+                registry,
+                ApiCryptoRuntimePolicy.defaults(),
+                TEST_CRYPTO_SCHEDULER);
+    }
+
     private ApiCryptoRuntimePolicy policy(long maxRequestBytes, long maxResponseBytes) {
         return new ApiCryptoRuntimePolicy(
                 DataSize.ofBytes(maxRequestBytes),
@@ -361,30 +629,106 @@ class ApiCryptoWebFilterTest {
     }
 
     private ApiCryptoEndpointRegistry matchingRegistry(boolean request, boolean response) {
-        ApiCryptoEndpointRule rule = new ApiCryptoEndpointRule(List.of(), List.of("/**"), request, response);
-        return new ApiCryptoEndpointRegistry(null) {
-            @Override
-            public Optional<ApiCryptoEndpointRule> find(ServerHttpRequest request) {
-                return Optional.of(rule);
-            }
-
-            @Override
-            public List<ApiCryptoEndpointRule> rules() {
-                return List.of(rule);
-            }
-        };
+        String methodName;
+        if (request && response) {
+            methodName = "requestAndResponse";
+        } else if (request) {
+            methodName = "requestOnly";
+        } else if (response) {
+            methodName = "responseOnly";
+        } else {
+            methodName = "plain";
+        }
+        return registry(methodName);
     }
 
     private ApiCryptoEndpointRegistry emptyRegistry() {
-        return new ApiCryptoEndpointRegistry(null) {
+        return registry("unannotated");
+    }
+
+    private ApiCryptoEndpointRegistry parameterizedRegistry(boolean includePlainDifyEndpoint) {
+        try {
+            RequestMappingHandlerMapping handlerMapping = new RequestMappingHandlerMapping();
+            TestCryptoController controller = new TestCryptoController();
+            handlerMapping.registerMapping(
+                    RequestMappingInfo.paths("/api/search")
+                            .methods(RequestMethod.GET)
+                            .params("tenant")
+                            .build(),
+                    controller,
+                    TestCryptoController.class.getMethod("secureTenant")
+            );
+            if (includePlainDifyEndpoint) {
+                handlerMapping.registerMapping(
+                        RequestMappingInfo.paths("/api/search")
+                                .methods(RequestMethod.GET)
+                                .params("source=dify")
+                                .build(),
+                        controller,
+                        TestCryptoController.class.getMethod("plainDify")
+                );
+            }
+            return new ApiCryptoEndpointRegistry(provider(handlerMapping));
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException("测试参数化端点不存在", e);
+        }
+    }
+
+    private ApiCryptoEndpointRegistry parameterizedRegistryWithPlainFallback() {
+        try {
+            RequestMappingHandlerMapping handlerMapping = new RequestMappingHandlerMapping();
+            TestCryptoController controller = new TestCryptoController();
+            handlerMapping.registerMapping(
+                    RequestMappingInfo.paths("/api/search")
+                            .methods(RequestMethod.GET)
+                            .params("tenant")
+                            .build(),
+                    controller,
+                    TestCryptoController.class.getMethod("secureTenant")
+            );
+            handlerMapping.registerMapping(
+                    RequestMappingInfo.paths("/api/search")
+                            .methods(RequestMethod.GET)
+                            .build(),
+                    controller,
+                    TestCryptoController.class.getMethod("plainDify")
+            );
+            return new ApiCryptoEndpointRegistry(provider(handlerMapping));
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException("测试参数化端点不存在", e);
+        }
+    }
+
+    private ApiCryptoEndpointRegistry registry(String methodName) {
+        try {
+            RequestMappingHandlerMapping handlerMapping = new RequestMappingHandlerMapping();
+            Method method = TestCryptoController.class.getMethod(methodName);
+            handlerMapping.registerMapping(
+                    RequestMappingInfo.paths("/**").build(),
+                    new TestCryptoController(),
+                    method
+            );
+            return new ApiCryptoEndpointRegistry(provider(handlerMapping));
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException("测试加密端点不存在", e);
+        }
+    }
+
+    private ObjectProvider<RequestMappingHandlerMapping> provider(RequestMappingHandlerMapping handlerMapping) {
+        return new ObjectProvider<>() {
             @Override
-            public Optional<ApiCryptoEndpointRule> find(ServerHttpRequest request) {
-                return Optional.empty();
+            public RequestMappingHandlerMapping getObject() {
+                return handlerMapping;
             }
 
             @Override
-            public List<ApiCryptoEndpointRule> rules() {
-                return List.of();
+            public Stream<RequestMappingHandlerMapping> stream() {
+                return Stream.of(handlerMapping);
+            }
+
+            @Override
+            public Stream<RequestMappingHandlerMapping> orderedStream() {
+                return Stream.of(handlerMapping);
             }
         };
     }
@@ -399,10 +743,51 @@ class ApiCryptoWebFilterTest {
         return new ApiCryptoService(properties, objectMapper);
     }
 
+    private ApiCryptoEnvelope withAlgorithm(ApiCryptoEnvelope envelope, String algorithm) {
+        return new ApiCryptoEnvelope(
+                envelope.encrypted(),
+                envelope.version(),
+                algorithm,
+                envelope.keyId(),
+                envelope.iv(),
+                envelope.salt(),
+                envelope.data(),
+                envelope.tag());
+    }
+
     private static String readAndRelease(DataBuffer buffer) {
         byte[] bytes = new byte[buffer.readableByteCount()];
         buffer.read(bytes);
         DataBufferUtils.release(buffer);
         return new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    static class TestCryptoController {
+
+        @ApiCrypto
+        public void requestAndResponse() {
+        }
+
+        @ApiCrypto(response = false)
+        public void requestOnly() {
+        }
+
+        @ApiCrypto(request = false)
+        public void responseOnly() {
+        }
+
+        @ApiCrypto(request = false, response = false)
+        public void plain() {
+        }
+
+        public void unannotated() {
+        }
+
+        @ApiCrypto(response = false)
+        public void secureTenant() {
+        }
+
+        public void plainDify() {
+        }
     }
 }
