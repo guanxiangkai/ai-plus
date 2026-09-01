@@ -7,7 +7,6 @@ import io.github.guanxiangkai.web.plus.core.model.PageQuery;
 import io.github.guanxiangkai.web.plus.core.model.PageResponse;
 import io.github.guanxiangkai.web.plus.log.annotation.OperationLog;
 import io.github.guanxiangkai.web.plus.security.annotation.RequiresPermission;
-import io.github.guanxiangkai.web.plus.web.annotation.ApiCrypto;
 import io.github.guanxiangkai.web.plus.web.exception.ImportValidationException;
 import io.github.guanxiangkai.web.plus.web.properties.ImportProperties;
 import io.github.guanxiangkai.web.plus.web.service.IBaseService;
@@ -30,7 +29,8 @@ import java.util.Set;
  * 基础 CRUD 控制器
  * <p>
  * 在 {@link ReadOnlyBaseController} 的统一查询端点基础上提供写入和导入接口。所有 JSON
- * 端点均叠加操作日志、权限校验和 API 加密注解，SpEL 表达式在运行时动态解析为具体子类实例的返回值：
+ * 端点均叠加操作日志和权限校验。需要接口载荷加密时，由业务控制器或其方法显式标注
+ * {@code @ApiCrypto}；SpEL 表达式在运行时动态解析为具体子类实例的返回值：
  * </p>
  * <ul>
  *   <li>{@code #{getModuleName()}}       → 模块名，从包名 {@code *.controller.<module>.*} 中提取</li>
@@ -93,7 +93,6 @@ public abstract class BaseController<Q extends PageQuery, LV, DV, C, U, E extend
     @OperationLog(typeCode = "INSERT", module = "#{getModuleName()}",
             description = "#{getEntityName() + '新增'}")
     @Operation(summary = "新增", description = "新增数据")
-    @ApiCrypto
     @PostMapping
     public Mono<ApiResponse<String>> create(@Valid @RequestBody C dto) {
         return executeBlocking(() -> ApiResponse.ok(getService().create(dto)));
@@ -103,7 +102,6 @@ public abstract class BaseController<Q extends PageQuery, LV, DV, C, U, E extend
     @OperationLog(typeCode = "UPDATE", module = "#{getModuleName()}",
             description = "#{getEntityName() + '修改'}")
     @Operation(summary = "修改", description = "根据ID修改数据")
-    @ApiCrypto
     @PutMapping("/{id}")
     public Mono<ApiResponse<DV>> update(
             @Parameter(description = "数据ID", required = true) @PathVariable String id,
@@ -118,7 +116,6 @@ public abstract class BaseController<Q extends PageQuery, LV, DV, C, U, E extend
     @OperationLog(typeCode = "UPDATE", module = "#{getModuleName()}",
             description = "#{getEntityName() + '启用状态更新'}")
     @Operation(summary = "更新启用状态", description = "根据ID更新数据的启用/禁用状态")
-    @ApiCrypto
     @PutMapping("/{id}/enabled")
     public Mono<ApiResponse<DV>> updateEnabled(
             @Parameter(description = "数据ID", required = true) @PathVariable String id,
@@ -135,7 +132,6 @@ public abstract class BaseController<Q extends PageQuery, LV, DV, C, U, E extend
     @OperationLog(typeCode = "UPDATE", module = "#{getModuleName()}",
             description = "#{getEntityName() + '批量启用状态更新'}")
     @Operation(summary = "批量更新启用状态", description = "根据ID列表批量更新数据的启用/禁用状态")
-    @ApiCrypto
     @PutMapping("/batch/enabled")
     public Mono<ApiResponse<Void>> batchUpdateEnabled(
             @Parameter(description = "数据ID列表", required = true) @RequestBody List<String> ids,
@@ -150,7 +146,6 @@ public abstract class BaseController<Q extends PageQuery, LV, DV, C, U, E extend
     @OperationLog(typeCode = "DELETE", module = "#{getModuleName()}",
             description = "#{getEntityName() + '删除'}")
     @Operation(summary = "删除", description = "根据ID软删除数据")
-    @ApiCrypto
     @DeleteMapping("/{id}")
     public Mono<ApiResponse<Void>> delete(
             @Parameter(description = "数据ID", required = true) @PathVariable String id) {
@@ -166,7 +161,6 @@ public abstract class BaseController<Q extends PageQuery, LV, DV, C, U, E extend
     @OperationLog(typeCode = "DELETE", module = "#{getModuleName()}",
             description = "#{getEntityName() + '批量删除'}")
     @Operation(summary = "批量删除", description = "根据ID列表批量软删除数据")
-    @ApiCrypto
     @DeleteMapping("/batch")
     public Mono<ApiResponse<Void>> batchDelete(
             @Parameter(description = "数据ID列表", required = true) @RequestBody List<String> ids) {

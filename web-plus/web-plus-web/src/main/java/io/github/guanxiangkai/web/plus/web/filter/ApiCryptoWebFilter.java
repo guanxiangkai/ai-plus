@@ -44,7 +44,10 @@ import java.util.function.Function;
 /**
  * API 入参解密与出参加密过滤器。
  *
- * <p>仅处理 JSON 请求体、加密查询参数和 JSON 响应；文件下载、SSE、表单上传等非 JSON 流量自动跳过。</p>
+ * <p>处理 JSON 请求体、加密查询参数和 JSON 响应。加密查询先按不含参数的完整路由边界
+ * 筛选显式候选，解密后再按 Spring 完整条件复核最终端点，禁止借解密改变到未标注路由。
+ * 显式要求请求解密的端点如收到非 JSON 请求体会直接拒绝；文件、SSE、表单和其他流式端点
+ * 不应标注本能力。</p>
  *
  * @author guanxiangkai
  * @since 1.0.0
@@ -84,38 +87,87 @@ public class ApiCryptoWebFilter implements WebFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        if (isPublicConfigPath(exchange) || isInternalPath(exchange)) {
+        if (isPublicConfigPath(exchange)) {
             return chain.filter(exchange);
         }
-        var rule = apiCryptoEndpointRegistry.find(exchange.getRequest());
-        if (rule.isEmpty()) {
+        if (apiCryptoService.requestEnabled() && hasEncryptedQuery(exchange.getRequest())) {
+            return filterEncryptedQueryCandidate(exchange, chain);
+        }
+        var exactMatch = apiCryptoEndpointRegistry.find(exchange);
+        if (exactMatch.isPresent()) {
+            var rule = exactMatch.get().rule();
+            if (rule.isEmpty()) {
+                return chain.filter(exchange);
+            }
+            return prepareExactMatch(exchange, rule.get())
+                    .flatMap(resolved -> filterMatched(resolved, chain));
+        }
+        return chain.filter(exchange);
+    }
+
+    private Mono<Void> filterEncryptedQueryCandidate(ServerWebExchange exchange, WebFilterChain chain) {
+        if (!apiCryptoService.requestEnabled() || !hasEncryptedQuery(exchange.getRequest())) {
             return chain.filter(exchange);
         }
-        ApiCryptoEndpointRule apiCryptoRule = rule.get();
-        ServerWebExchange responseExchange = apiCryptoRule.response() && apiCryptoService.responseEnabled()
-                ? exchange.mutate().response(new EncryptingResponse(exchange.getResponse())).build()
-                : exchange;
-        return decryptRequest(responseExchange, apiCryptoRule).flatMap(chain::filter);
+        var candidates = apiCryptoEndpointRegistry.findEncryptedQueryCandidates(exchange);
+        if (candidates.isEmpty()) {
+            return chain.filter(exchange);
+        }
+        return decryptQuery(exchange)
+                .map(decryptedExchange -> resolveCandidate(decryptedExchange, candidates.get()))
+                .flatMap(resolved -> filterMatched(resolved, chain));
     }
 
     private boolean isPublicConfigPath(ServerWebExchange exchange) {
         return ApiCryptoPublicConfig.CONFIG_PATH.equals(exchange.getRequest().getPath().pathWithinApplication().value());
     }
 
-    private boolean isInternalPath(ServerWebExchange exchange) {
-        String path = exchange.getRequest().getPath().pathWithinApplication().value();
-        return "/internal".equals(path) || path.startsWith("/internal/");
+    private Mono<ResolvedEndpoint> prepareExactMatch(
+            ServerWebExchange exchange,
+            ApiCryptoEndpointRule rule) {
+        if (!rule.request() || !apiCryptoService.requestEnabled()) {
+            return Mono.just(new ResolvedEndpoint(exchange, rule));
+        }
+        return decryptQuery(exchange)
+                .map(queryExchange -> new ResolvedEndpoint(queryExchange, rule));
     }
 
-    private Mono<ServerWebExchange> decryptRequest(ServerWebExchange exchange, ApiCryptoEndpointRule rule) {
-        if (!rule.request() || !apiCryptoService.requestEnabled()) {
-            return Mono.just(exchange);
-        }
+    private Mono<ServerWebExchange> decryptQuery(ServerWebExchange exchange) {
         return Mono.fromCallable(() -> decryptQueryParams(exchange))
                 .subscribeOn(cryptoScheduler)
-                .flatMap(queryExchange -> hasDecryptableBody(queryExchange.getRequest())
-                        ? decryptBody(queryExchange)
-                        : Mono.just(queryExchange));
+                .onErrorMap(ApiCryptoException.class,
+                        cause -> badRequest("接口加密请求校验失败", cause));
+    }
+
+    private ResolvedEndpoint resolveCandidate(
+            ServerWebExchange decryptedExchange,
+            ApiCryptoEndpointRegistry.EncryptedQueryCandidates candidates) {
+        ApiCryptoEndpointRegistry.EndpointMatch finalMatch = apiCryptoEndpointRegistry.find(decryptedExchange)
+                .orElseThrow(() -> badRequest("接口加密查询参数无法匹配目标端点", null));
+        if (!candidates.accepts(finalMatch)) {
+            throw badRequest("接口加密查询参数匹配到未授权端点", null);
+        }
+        ApiCryptoEndpointRule finalRule = finalMatch.rule()
+                .orElseThrow(() -> badRequest("接口加密查询参数匹配到未加密端点", null));
+        return new ResolvedEndpoint(decryptedExchange, finalRule);
+    }
+
+    private Mono<Void> filterMatched(ResolvedEndpoint resolved, WebFilterChain chain) {
+        ApiCryptoEndpointRule rule = resolved.rule();
+        ServerWebExchange exchange = resolved.exchange();
+        ServerWebExchange responseExchange = rule.response() && apiCryptoService.responseEnabled()
+                ? exchange.mutate().response(new EncryptingResponse(
+                        exchange.getResponse(), exchange.getRequest().getMethod())).build()
+                : exchange;
+        if (!rule.request()
+                || !apiCryptoService.requestEnabled()
+                || !hasDecryptableBody(responseExchange.getRequest())) {
+            return chain.filter(responseExchange);
+        }
+        return decryptBody(responseExchange)
+                .onErrorMap(ApiCryptoException.class,
+                        cause -> badRequest("接口加密请求校验失败", cause))
+                .flatMap(chain::filter);
     }
 
     private ServerWebExchange decryptQueryParams(ServerWebExchange exchange) {
@@ -154,6 +206,10 @@ public class ApiCryptoWebFilter implements WebFilter, Ordered {
                 .toUri();
         ServerHttpRequest request = exchange.getRequest().mutate().uri(uri).build();
         return exchange.mutate().request(request).build();
+    }
+
+    private boolean hasEncryptedQuery(ServerHttpRequest request) {
+        return request.getQueryParams().containsKey(ApiCryptoService.CRYPTO_QUERY_PARAM);
     }
 
     private void appendQueryParam(MultiValueMap<String, String> queryParams, String name, JsonNode value) {
@@ -195,6 +251,11 @@ public class ApiCryptoWebFilter implements WebFilter, Ordered {
                     if (bytes.length == 0) {
                         return Mono.just(exchange);
                     }
+                    MediaType contentType = request.getHeaders().getContentType();
+                    if (!isJson(contentType)) {
+                        return Mono.error(unsupportedMediaType(
+                                "接口加密请求体必须使用 JSON 媒体类型", null));
+                    }
                     String rawBody = new String(bytes, StandardCharsets.UTF_8);
                     var envelope = apiCryptoService.readEnvelope(rawBody);
                     if (envelope.isEmpty()) {
@@ -211,14 +272,7 @@ public class ApiCryptoWebFilter implements WebFilter, Ordered {
     }
 
     private boolean hasDecryptableBody(ServerHttpRequest request) {
-        if (!BODY_METHODS.contains(request.getMethod())) {
-            return false;
-        }
-        if (hasCryptoHeader(request)) {
-            return true;
-        }
-        MediaType contentType = request.getHeaders().getContentType();
-        return isJson(contentType) && (request.getHeaders().getContentLength() != 0);
+        return BODY_METHODS.contains(request.getMethod()) || hasCryptoHeader(request);
     }
 
     private boolean hasCryptoHeader(ServerHttpRequest request) {
@@ -226,18 +280,20 @@ public class ApiCryptoWebFilter implements WebFilter, Ordered {
                 || request.getHeaders().getFirst(ApiCryptoService.CRYPTO_KEY_ID_HEADER) != null;
     }
 
-    private boolean shouldEncryptResponse(ServerHttpResponse response) {
-        if (!apiCryptoService.responseEnabled() || response.isCommitted()) {
-            return false;
+    private boolean hasNoResponseBody(ServerHttpResponse response, HttpMethod requestMethod) {
+        if (HttpMethod.HEAD.equals(requestMethod)) {
+            return true;
         }
         var status = response.getStatusCode();
-        if (status != null
-                && (status.value() == HttpStatus.NO_CONTENT.value()
-                || status.value() == HttpStatus.NOT_MODIFIED.value())) {
-            return false;
-        }
-        MediaType contentType = response.getHeaders().getContentType();
-        return isJson(contentType) && !isStreamingJson(contentType);
+        return status != null
+                && (status.is1xxInformational()
+                || status.value() == HttpStatus.NO_CONTENT.value()
+                || status.value() == HttpStatus.RESET_CONTENT.value()
+                || status.value() == HttpStatus.NOT_MODIFIED.value());
+    }
+
+    private boolean supportsResponseEncryption(MediaType mediaType) {
+        return isJson(mediaType) && !isStreamingJson(mediaType);
     }
 
     private boolean isStreamingJson(MediaType mediaType) {
@@ -269,10 +325,28 @@ public class ApiCryptoWebFilter implements WebFilter, Ordered {
         return new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE, message, cause);
     }
 
+    private ResponseStatusException unsupportedMediaType(String message, Throwable cause) {
+        return new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, message, cause);
+    }
+
     private ResponseStatusException responseTooLarge(Throwable cause) {
         return new ResponseStatusException(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "接口响应超过加密聚合上限",
+                cause);
+    }
+
+    private ResponseStatusException unsupportedEncryptedResponse(Throwable cause) {
+        return new ResponseStatusException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "接口响应媒体类型不支持载荷加密",
+                cause);
+    }
+
+    private ResponseStatusException emptyEncryptedResponse(Throwable cause) {
+        return new ResponseStatusException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "接口响应缺少可加密载荷",
                 cause);
     }
 
@@ -304,37 +378,45 @@ public class ApiCryptoWebFilter implements WebFilter, Ordered {
 
     private final class EncryptingResponse extends ServerHttpResponseDecorator {
 
-        private EncryptingResponse(ServerHttpResponse delegate) {
+        private final HttpMethod requestMethod;
+
+        private EncryptingResponse(ServerHttpResponse delegate, HttpMethod requestMethod) {
             super(delegate);
+            this.requestMethod = requestMethod;
         }
 
         @Override
         public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
-            if (!shouldEncryptResponse(this)) {
+            if (hasNoResponseBody(this, requestMethod)) {
                 return super.writeWith(body);
+            }
+            if (isCommitted()) {
+                return Mono.error(unsupportedEncryptedResponse(null));
+            }
+            MediaType contentType = getHeaders().getContentType();
+            if (!supportsResponseEncryption(contentType)) {
+                return Mono.error(unsupportedEncryptedResponse(null));
             }
             long contentLength = getHeaders().getContentLength();
             if (contentLength > runtimePolicy.maxResponseBodyBytes()) {
                 return Mono.error(responseTooLarge(null));
             }
             return DataBufferUtils.join(Flux.from(body), runtimePolicy.maxResponseBodyBytes())
+                    .switchIfEmpty(Mono.error(emptyEncryptedResponse(null)))
                     .publishOn(cryptoScheduler)
                     .flatMap(buffer -> {
                         byte[] originalBody = readAndRelease(buffer);
                         if (originalBody.length == 0) {
-                            return super.writeWith(Mono.empty());
+                            return Mono.error(emptyEncryptedResponse(null));
                         }
                         try {
-                            ResponseEncryptionResult result = encryptResponseBody(originalBody);
-                            if (!result.encrypted()) {
-                                return super.writeWith(Mono.just(bufferFactory().wrap(result.body())));
-                            }
+                            byte[] encryptedBody = encryptResponseBody(originalBody);
                             HttpHeaders headers = getHeaders();
                             headers.setContentType(MediaType.APPLICATION_JSON);
-                            headers.setContentLength(result.body().length);
+                            headers.setContentLength(encryptedBody.length);
                             headers.set(ApiCryptoService.CRYPTO_HEADER, apiCryptoService.responseStrategyHeader());
                             headers.set(ApiCryptoService.CRYPTO_KEY_ID_HEADER, apiCryptoService.responseKeyId());
-                            return super.writeWith(Mono.just(bufferFactory().wrap(result.body())));
+                            return super.writeWith(Mono.just(bufferFactory().wrap(encryptedBody)));
                         } catch (ApiCryptoException e) {
                             return Mono.error(new ResponseStatusException(
                                     HttpStatus.INTERNAL_SERVER_ERROR, "接口响应加密失败", e));
@@ -344,25 +426,30 @@ public class ApiCryptoWebFilter implements WebFilter, Ordered {
         }
 
         @Override
-        public Mono<Void> writeAndFlushWith(Publisher<? extends Publisher<? extends DataBuffer>> body) {
-            if (!shouldEncryptResponse(this)) {
-                return super.writeAndFlushWith(body);
+        public Mono<Void> setComplete() {
+            if (hasNoResponseBody(this, requestMethod)) {
+                return super.setComplete();
             }
+            return Mono.error(emptyEncryptedResponse(null));
+        }
+
+        @Override
+        public Mono<Void> writeAndFlushWith(Publisher<? extends Publisher<? extends DataBuffer>> body) {
             return writeWith(Flux.from(body).flatMapSequential(Function.identity()));
         }
     }
 
-    private ResponseEncryptionResult encryptResponseBody(byte[] originalBody) {
+    private byte[] encryptResponseBody(byte[] originalBody) {
         String rawJson = new String(originalBody, StandardCharsets.UTF_8);
-        ResponseEncryptionResult dataFieldResult = encryptDataField(rawJson);
-        if (dataFieldResult != null) {
-            return dataFieldResult;
+        byte[] encryptedDataField = encryptDataField(rawJson);
+        if (encryptedDataField != null) {
+            return encryptedDataField;
         }
         ApiCryptoEnvelope envelope = apiCryptoService.encryptResponseJson(rawJson);
-        return new ResponseEncryptionResult(true, apiCryptoService.serializeEnvelope(envelope));
+        return apiCryptoService.serializeEnvelope(envelope);
     }
 
-    private ResponseEncryptionResult encryptDataField(String rawJson) {
+    private byte[] encryptDataField(String rawJson) {
         JsonNode root;
         try {
             root = objectMapper.readTree(rawJson);
@@ -373,19 +460,19 @@ public class ApiCryptoWebFilter implements WebFilter, Ordered {
             return null;
         }
         JsonNode data = root.get("data");
-        if (data == null || data.isNull()) {
-            return new ResponseEncryptionResult(false, rawJson.getBytes(StandardCharsets.UTF_8));
-        }
         try {
             ApiCryptoEnvelope envelope = apiCryptoService.encryptResponseJson(objectMapper.writeValueAsString(data));
             ObjectNode encryptedRoot = root.asObject().deepCopy();
             encryptedRoot.set("data", objectMapper.valueToTree(envelope));
-            return new ResponseEncryptionResult(true, objectMapper.writeValueAsBytes(encryptedRoot));
+            return objectMapper.writeValueAsBytes(encryptedRoot);
         } catch (JacksonException e) {
             throw new ApiCryptoException("接口响应 data 加密失败", e);
         }
     }
 
-    private record ResponseEncryptionResult(boolean encrypted, byte[] body) {
+    private record ResolvedEndpoint(
+            ServerWebExchange exchange,
+            ApiCryptoEndpointRule rule
+    ) {
     }
 }

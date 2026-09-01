@@ -3,9 +3,9 @@ web-plus:
     allowed-extensions: [".xlsx", ".xls", ".doc", ".docx"]
     max-file-size: 20MB
   api-crypto:
-    # 接口加解密总开关，默认关闭；开启后也只处理标注 @ApiCrypto 的接口。
+    # 接口载荷加解密总开关，默认关闭；开启后仅处理业务 Controller 或方法显式标注 @ApiCrypto 的接口。
     enabled: false
-    # 默认使用 SM4-CBC-SM3；可按客户端协议显式调整。
+    # 默认使用 SM4-CBC-SM3；信封 algorithm 必须与此策略精确匹配，不允许协商或降级。
     strategy: SM4_CBC_SM3_V1
     # 仅 AES_GCM_V1 使用。
     pbkdf2-iterations: 120000

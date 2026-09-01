@@ -118,13 +118,22 @@ web-plus:
 ```
 
 - `enabled` 是总开关，默认关闭；关闭时不要求配置密钥，也不会注册加解密过滤器。
-- `request.enabled` 是入参解密总开关；只有同时命中 `@ApiCrypto(request = true)` 的接口才会解密，并拒绝明文 JSON body 和明文 query 参数，避免降级绕过。
-- `response.enabled` 是出参加密总开关；只有同时命中 `@ApiCrypto(response = true)` 的接口才会加密 JSON 响应。标准 `ApiResponse` 只加密 `data` 字段，`code/message/timestamp` 等外层状态保持明文；`data` 为 `null` 时不写加密响应头。文件下载、SSE、表单等非 JSON 流量跳过。
-- `runtime` 为请求、响应和查询信封设置明确聚合上限，并使用有界专用工作池执行 PBKDF2、JSON 编解码和对称加密；超过请求上限返回 413，超过响应上限按服务端错误快速失败。NDJSON、`stream+json`、SSE 和文件流保持流式传输，不参与聚合加密。
-- 请求和响应密钥必须与相应客户端实现一致；框架不约束客户端环境变量名称。
-- 前端启动时可读取 `/web-plus/api-crypto/config` 获取总开关、入参/出参开关、策略、keyId、请求头、查询参数名和 `@ApiCrypto` 端点规则；该接口不返回密钥，也不会被加密过滤器处理。
+- `request.enabled` 是入参解密总开关；只有同时命中 `@ApiCrypto(request = true)` 的接口才会解密。带请求体的方法必须使用 JSON 媒体类型并提交合法加密信封；明文 body、缺失/伪造 Content-Type 和明文 query 参数都会被拒绝，不允许降级绕过。
+- `response.enabled` 是出参加密总开关；只有同时命中 `@ApiCrypto(response = true)` 的接口才会加密 JSON 响应。除 HEAD、1xx、204、205、304 等协议上无响应体的情况外，该方向必须声明非流式 JSON 媒体类型并产生可加密载荷。标准 `ApiResponse` 加密 `data` 字段，`code/message/timestamp` 等外层状态保持明文；`data` 为 `null` 时也会以加密信封表示并写入加密响应头。文件下载、SSE、表单等非 JSON 流量不应标注 `@ApiCrypto(response = true)`；如果误标，框架会失败关闭并返回服务端错误，不会明文透传。
+- `runtime` 为请求、响应和查询信封设置明确聚合上限，并使用有界专用工作池执行 PBKDF2、JSON 编解码和对称加密；超过请求上限返回 413，超过响应上限按服务端错误快速失败。NDJSON、`stream+json`、SSE 和文件流必须保持未标注的流式契约，不参与聚合加密。
+- 请求和响应密钥必须与相应客户端实现一致；信封的 `algorithm` 必须与服务端配置的 `strategy` 精确匹配，不允许协商或降级；框架不约束客户端环境变量名称。
+- 前端启动时可读取 `/web-plus/api-crypto/config` 获取总开关、入参/出参开关、策略、keyId、请求头、查询参数名和 `@ApiCrypto` 端点摘要；该接口不返回密钥，也不会被加密过滤器处理。端点摘要只用于发现和诊断，客户端仍应按自身 API 契约决定是否加密；服务端以 Spring 的完整映射条件为权威。
 - 默认响应头为 `X-Api-Crypto` 和 `X-Api-Crypto-Key-Id`，查询参数为 `__api_crypto`；信封字段为 `encrypted/version/algorithm/keyId/iv/salt/data/tag`。
-- `ReadOnlyBaseController` 只内置分页 `list` 与 `detail` 查询接口，适用于投影和大数据集读取；`BaseController` 在此基础上增加写入和导入接口。所有 JSON 查询与 CRUD 接口默认标注 `@ApiCrypto`；`/import` 文件上传保持明文。业务侧导出、下载、SSE 等流式接口应由领域 Controller 按其筛选条件、权限和数据上限单独定义，且不要标注加密；若 Controller 类级别使用了 `@ApiCrypto`，这些方法应显式覆盖为 `@ApiCrypto(request = false, response = false)`。
+- `ReadOnlyBaseController` 只内置分页 `list` 与 `detail` 查询接口，适用于投影和大数据集读取；`BaseController` 在此基础上增加写入和导入接口。两者的所有端点默认都是标准 JSON，业务 Controller 或方法必须显式标注 `@ApiCrypto` 才启用载荷加密；路径名称（包括 `/internal/**`）不会改变该规则。业务侧导出、下载、SSE 等流式接口应由领域 Controller 按其筛选条件、权限和数据上限单独定义，且不要标注加密；若 Controller 类级别使用了 `@ApiCrypto`，这些方法应显式覆盖为 `@ApiCrypto(request = false, response = false)`。
+
+### Dify 与服务间接入边界
+
+API 载荷加密不是 TLS、认证授权或等保合规的替代措施。Dify 的标准 HTTP 调用不实现本框架的加密信封，面向 Dify 与其他编排器的端点应使用独立的 Controller、标准 JSON，并保持未标注 `@ApiCrypto`；只有调用方能够实现同一信封协议且确有端到端载荷保密需求时才启用该注解。
+
+- 服务间调用必须使用 HTTPS 并校验证书；需要商用密码应用安全性评估时，应由部署方案使用符合目标等级和测评方案的密码产品、协议与密钥管理设施，不能仅凭本框架的载荷算法宣称合规。
+- 调用方身份应使用 mTLS、OAuth2 Client Credentials 或部署侧认可的等价服务身份机制，并配套最小权限、网络边界、限流、超时和幂等重试。
+- 只传递业务所需的最少数据；访问日志和审计记录保留 TraceId、调用方、接口、结果与耗时，不记录密钥、完整明文请求体或敏感响应体。
+- 禁止依据路径、User-Agent、缺少加密头或解密失败自动回退为明文。同一路径存在多个 Spring 映射条件时，框架按完整的 method、path、params、headers、consumes、produces 和自定义条件选择实际端点，只有最终命中的端点显式标注时才执行载荷加解密。
 
 ```java
 @ApiCrypto

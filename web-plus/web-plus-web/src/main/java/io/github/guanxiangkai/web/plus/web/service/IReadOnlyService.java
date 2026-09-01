@@ -7,7 +7,7 @@ import io.github.guanxiangkai.web.plus.core.model.PageResponse;
  * 只读查询 Service 契约。
  * <p>
  * 用于仅提供分页列表和详情查询的业务投影。实现类不需要伪造实体、Repository
- * 或写入命令，即可复用 {@code ReadOnlyBaseController} 的统一 HTTP、权限、审计和加密契约。
+ * 或写入命令，即可复用 {@code ReadOnlyBaseController} 的统一 HTTP、权限与审计契约。
  * </p>
  *
  * @param <Q>  分页查询 DTO

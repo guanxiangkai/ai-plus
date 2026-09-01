@@ -5,7 +5,6 @@ import io.github.guanxiangkai.web.plus.core.model.PageQuery;
 import io.github.guanxiangkai.web.plus.core.model.PageResponse;
 import io.github.guanxiangkai.web.plus.log.annotation.OperationLog;
 import io.github.guanxiangkai.web.plus.security.annotation.RequiresPermission;
-import io.github.guanxiangkai.web.plus.web.annotation.ApiCrypto;
 import io.github.guanxiangkai.web.plus.web.service.IReadOnlyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,8 +20,8 @@ import java.util.function.Supplier;
  * 只读查询控制器基类。
  * <p>
  * 统一提供 {@code /list} 与 {@code /{id}} 查询端点，以及与 CRUD 控制器一致的
- * 权限、操作日志、API 加密和 {@code Mono<ApiResponse<T>>} 响应契约。仅提供查询投影的业务
- * 控制器应继承本类，避免引入无意义的写入 DTO 或实体泛型。
+ * 权限、操作日志和 {@code Mono<ApiResponse<T>>} 响应契约。接口载荷加密由业务控制器或方法
+ * 显式声明；仅提供查询投影的业务控制器应继承本类，避免引入无意义的写入 DTO 或实体泛型。
  * </p>
  *
  * <p>子类须实现 {@link #getService()}。权限和操作日志的 SpEL 表达式可直接调用本类公开的
@@ -86,7 +85,6 @@ public abstract class ReadOnlyBaseController<Q extends PageQuery, LV, DV> {
     @OperationLog(typeCode = "QUERY", module = "#{getModuleName()}",
             description = "#{getEntityName() + '分页列表查询'}", saveRequestParams = false)
     @Operation(summary = "分页列表", description = "分页查询列表数据")
-    @ApiCrypto
     @GetMapping("/list")
     public Mono<ApiResponse<PageResponse<LV>>> list(Q query) {
         return executeBlocking(() -> ApiResponse.ok(getService().list(query)));
@@ -102,7 +100,6 @@ public abstract class ReadOnlyBaseController<Q extends PageQuery, LV, DV> {
     @OperationLog(typeCode = "QUERY", module = "#{getModuleName()}",
             description = "#{getEntityName() + '详情查询'}")
     @Operation(summary = "详情", description = "根据ID查询详细信息")
-    @ApiCrypto
     @GetMapping("/{id}")
     public Mono<ApiResponse<DV>> detail(
             @Parameter(description = "数据ID", required = true) @PathVariable String id) {

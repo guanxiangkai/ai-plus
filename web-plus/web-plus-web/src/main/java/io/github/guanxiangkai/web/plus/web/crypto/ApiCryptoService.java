@@ -152,11 +152,25 @@ public class ApiCryptoService {
 
     private String decryptEnvelope(ApiCryptoEnvelope envelope, String secret, String expectedKeyId) {
         assertKeyId(envelope, expectedKeyId);
-        ApiCryptoProperties.Strategy strategy = ApiCryptoProperties.Strategy.fromAlgorithm(envelope.algorithm());
+        ApiCryptoProperties.Strategy configuredStrategy = properties.getStrategy();
+        ApiCryptoProperties.Strategy envelopeStrategy = resolveEnvelopeStrategy(envelope.algorithm());
+        if (envelopeStrategy != configuredStrategy) {
+            throw new ApiCryptoException(
+                    "接口加密策略不匹配，期望=" + configuredStrategy.name()
+                            + "，实际=" + envelopeStrategy.name());
+        }
         String normalizedSecret = normalizeSecret(secret, "接口加密密钥未配置");
-        return strategy == ApiCryptoProperties.Strategy.AES_GCM_V1
+        return configuredStrategy == ApiCryptoProperties.Strategy.AES_GCM_V1
                 ? decryptAesGcm(envelope, normalizedSecret)
                 : decryptSm4(envelope, normalizedSecret);
+    }
+
+    private ApiCryptoProperties.Strategy resolveEnvelopeStrategy(String algorithm) {
+        try {
+            return ApiCryptoProperties.Strategy.fromAlgorithm(algorithm);
+        } catch (IllegalArgumentException cause) {
+            throw new ApiCryptoException("接口加密信封使用了不支持的算法", cause);
+        }
     }
 
     private ApiCryptoEnvelope encryptAesGcm(String json, String keyId, String secret) {
