@@ -13,9 +13,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.webclient.WebClientCustomizer;
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.context.annotation.Configuration;
 
 import java.util.UUID;
 
@@ -57,11 +56,23 @@ public class TracePropagationAutoConfiguration {
         return new TraceIdFilter(generator, properties.traceHeaderName());
     }
 
-    /** 让所有通过 Spring Boot 自动配置构建器创建的 WebClient 继续透传 TraceId。 */
-    @Bean
-    @ConditionalOnClass({WebClient.class, WebClientCustomizer.class})
-    @ConditionalOnMissingBean(TraceIdWebClientCustomizer.class)
-    public TraceIdWebClientCustomizer traceIdWebClientCustomizer(LogProperties properties) {
-        return new TraceIdWebClientCustomizer(properties.traceHeaderName());
+    /**
+     * 仅在 WebClient 自定义器 API 可用时注册出站 TraceId 透传。
+     *
+     * <p>可选类型只能由嵌套配置引用，避免缺少该 API 时外层自动配置在条件求值前解析方法返回类型。</p>
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = {
+            "org.springframework.web.reactive.function.client.WebClient",
+            "org.springframework.boot.webclient.WebClientCustomizer"
+    })
+    static class WebClientTracePropagationConfiguration {
+
+        /** 让所有通过 Spring Boot 自动配置构建器创建的 WebClient 继续透传 TraceId。 */
+        @Bean
+        @ConditionalOnMissingBean(TraceIdWebClientCustomizer.class)
+        TraceIdWebClientCustomizer traceIdWebClientCustomizer(LogProperties properties) {
+            return new TraceIdWebClientCustomizer(properties.traceHeaderName());
+        }
     }
 }
