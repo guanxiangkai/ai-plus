@@ -94,8 +94,8 @@ web-plus-log = { group = "io.github.guanxiangkai", name = "web-plus-log", versio
 ## 请求参数令牌
 
 `web-plus-security` 提供 `RequestParameterTokenResolver`，供认证过滤器或网关适配器显式解析
-URL 查询参数和 JSON 请求体中的 `token`。查询参数优先；解析到的查询参数会从下游 URL 移除，
-请求体令牌被提取后也会从下游 JSON 中移除，
+URL 查询参数和 JSON 请求体中的 `token`。查询参数优先；解析到的查询参数会从下游 URL 移除。
+当 query 与 body 同时提供时认证仍采用 query，且 body 中的 `token` 同样会从下游 JSON 中移除。
 未找到令牌或 JSON 不合法时则原样重放请求体。解析器默认最多缓存 1 MiB 请求体，不读取
 multipart、SSE、NDJSON 或流式 JSON 请求。
 
