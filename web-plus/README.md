@@ -9,7 +9,7 @@ Web Plus 是面向 Spring Boot 4 / WebFlux 的企业级 Web 增强框架骨架�
 | `web-plus-core` | 通用模型、常量、基础 SPI、响应结构、Reactor/异步上下文传播和工具 |
 | `web-plus-error` | 统一异常、错误码、全局异常处理和错误码文档贡献 |
 | `web-plus-web` | WebFlux 基础能力、Controller/Service/Repository 基类、JPA Plus/MapStruct Plus 集成、接口入参出参加密 |
-| `web-plus-security` | 当前用户上下文、认证过滤器、鉴权注解、安全自动配置 |
+| `web-plus-security` | 当前用户上下文、认证过滤器、鉴权注解、安全自动配置、请求参数令牌解析 |
 | `web-plus-protection` | 防重复提交、服务侧限流、防刷等接口保护能力 |
 | `web-plus-log` | HTTP TraceId、WebClient 透传、访问日志、操作日志、登录日志、数据变更桥接和日志 SPI |
 | `web-plus-doc` | SpringDoc / OpenAPI 文档增强 |
@@ -90,6 +90,26 @@ web-plus-log = { group = "io.github.guanxiangkai", name = "web-plus-log", versio
 业务应用需要标准 Span、W3C 传播和可视化后端时，应引入与项目 Spring Boot 版本一致的
 `spring-boot-starter-opentelemetry`。OTLP 导出地址、采样率和启用开关属于部署配置，
 不得硬编码在公共框架中。
+
+## 请求参数令牌
+
+`web-plus-security` 提供 `RequestParameterTokenResolver`，供认证过滤器或网关适配器显式解析
+URL 查询参数和 JSON 请求体中的 `token`。查询参数优先；解析到的查询参数会从下游 URL 移除，
+请求体令牌被提取后也会从下游 JSON 中移除，
+未找到令牌或 JSON 不合法时则原样重放请求体。解析器默认最多缓存 1 MiB 请求体，不读取
+multipart、SSE、NDJSON 或流式 JSON 请求。
+
+```java
+RequestParameterTokenResolver resolver = new RequestParameterTokenResolver(objectMapper);
+
+return resolver.resolve(exchange).flatMap(resolution -> {
+    // 令牌可能为空；下游必须使用 resolution.exchange()，而不是原 exchange。
+    return continueAuthentication(resolution.token(), resolution.source(), resolution.exchange());
+});
+```
+
+对于超出缓存上限、重复参数、空白/含空白/超长令牌，以及非字符串 JSON `token`，解析器会拒绝请求，
+且异常消息不会包含令牌值。
 
 ## 接口加密
 
