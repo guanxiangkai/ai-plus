@@ -49,7 +49,8 @@ class RequestParameterTokenResolverTest {
     @Test
     void removesOnlyTokenQuerySegmentsWithoutReencodingRawUri() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.get("https://example.test/api%2Fv1?keep=%252F&%74oken=query-token&empty=&repeat=a&repeat=b"));
+                MockServerHttpRequest.method(org.springframework.http.HttpMethod.GET,
+                        java.net.URI.create("https://example.test/api%2Fv1?keep=%252F&%74oken=query-token&empty=&repeat=a&repeat=b")));
 
         RequestParameterTokenResolution resolution = resolver.resolve(exchange).block();
 
@@ -144,7 +145,9 @@ class RequestParameterTokenResolverTest {
     @Test
     void releasesCachedDataBufferWhenSubscriptionIsCancelledAfterPublishOn() {
         PooledDataBuffer body = mock(PooledDataBuffer.class);
-        when(body.isAllocated()).thenReturn(true);
+        java.util.concurrent.atomic.AtomicBoolean allocated = new java.util.concurrent.atomic.AtomicBoolean(true);
+        when(body.isAllocated()).thenAnswer(ignored -> allocated.get());
+        when(body.release()).thenAnswer(ignored -> allocated.compareAndSet(true, false));
         when(body.readableByteCount()).thenReturn(2);
         when(body.read(any(byte[].class))).thenAnswer(invocation -> {
             byte[] bytes = invocation.getArgument(0);
