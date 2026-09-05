@@ -254,7 +254,7 @@ public final class RequestParameterTokenResolver {
             }
             int tokenFieldCount = 0;
             while (parser.nextToken() != JsonToken.END_OBJECT) {
-                if (parser.currentToken() != JsonToken.FIELD_NAME) {
+                if (parser.currentToken() != JsonToken.PROPERTY_NAME) {
                     return false;
                 }
                 if (TOKEN_PARAMETER.equals(parser.currentName())) {
