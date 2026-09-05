@@ -25,4 +25,16 @@ public record RequestParameterTokenResolution(
     public static RequestParameterTokenResolution absent(ServerWebExchange exchange) {
         return new RequestParameterTokenResolution(Optional.empty(), RequestParameterTokenSource.NONE, exchange);
     }
+
+    /**
+     * 返回不包含令牌和请求交换对象细节的诊断文本，防止敏感请求信息进入日志。
+     *
+     * @return 脱敏后的解析结果描述
+     */
+    @Override
+    public String toString() {
+        return "RequestParameterTokenResolution[token="
+                + (token.isPresent() ? "<redacted>" : "<absent>")
+                + ", source=" + source + ", exchange=<redacted>]";
+    }
 }
