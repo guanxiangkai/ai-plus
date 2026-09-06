@@ -107,6 +107,6 @@ Gradle Wrapper、三个能力族的 Version Catalog 与 GitHub Actions 由
 
 ## 发布
 
-提交并晋级到 `main` 后，可在 GitHub Actions 手工运行“发布 Maven 模块”并输入模块清单；`v*` 标签会发布全部模块。实际发布版本以 `gradle/module-versions.properties` 为准。
+提交并晋级到 `main` 后，在 GitHub Actions 手工运行“发布 Maven 模块”并输入模块清单。发布前执行完整构建、测试和 POM 校验，实际发布版本以 `gradle/module-versions.properties` 为准；标签不会自动发布制品。
 
 发布通过 Central Portal 完成，并使用 GitHub Actions Secret 注入短期 Maven Central 用户令牌与内存 GPG 私钥。仓库、日志和构建产物不保存这些凭据。
