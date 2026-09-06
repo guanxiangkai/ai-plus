@@ -10,4 +10,5 @@ dependencies {
     compileOnly(libs.jakarta.validation.api)
 
     annotationProcessor(libs.spring.boot.configuration.processor)
+    testImplementation(libs.spring.boot.starter.validation)
 }

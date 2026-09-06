@@ -94,6 +94,57 @@ web-plus-log = { group = "io.github.guanxiangkai", name = "web-plus-log", versio
 `spring-boot-starter-opentelemetry`。OTLP 导出地址、采样率和启用开关属于部署配置，
 不得硬编码在公共框架中。
 
+## 客户端 IP 恢复
+
+`web-plus-core` 默认只使用 TCP 连接对端地址，绝不因地址位于内网自动信任
+`X-Forwarded-For`。部署在受控反向代理之后时，必须显式配置全部可信代理 IP 或 CIDR：
+
+```yaml
+server:
+  forward-headers-strategy: none
+web-plus:
+  client-ip:
+    trusted-proxies:
+      - 192.0.2.10
+      - 198.51.100.0/28
+      - 2001:db8::10
+```
+
+示例地址需替换为实际受控代理。入口代理必须清理外部伪造转发头，再追加真实对端；
+本解析器需要未经提前改写的远端地址，因此使用上述 SPI 时关闭服务器自动转发头转换。
+
+默认解析器从 `X-Forwarded-For` 的右侧开始剥离可信代理；TCP peer、转发链中的任意地址必须是
+IP 字面量。缺少 peer 或转发链、以及 `unknown`、主机名、空值和非法字面量都会回退为 TCP peer
+（没有 peer 时为 `unknown`）。应用如有自己的网络信任边界，可注册 `ClientIpResolver` Bean 覆盖
+默认解析器。`IpUtils.getClientIp(...)` 仅返回 TCP peer；需要转发恢复的调用方应注入该 SPI。
+手工构造 `AccessLogFilter`、`LoginLogAspect`、`OperationLogAspect` 和 `DebounceFilter` 时，
+必须提供 `ClientIpResolver`。这些默认行为及构造器契约由 Web Core 4、Log/Protection 3、Web 7
+和聚合 Starter 8 的主版本表达；网关后部署必须先完成可信代理配置再接入。
+
+网关认证的 `gatewayTrustedIps` 与 `gatewayTrustedProxyIps` 是独立的服务身份授权配置，不能用
+客户端 IP 恢复配置替代。
+
+## 受限租户转发
+
+`web-plus-security` 提供显式创建的 `TenantForwardingExchangeFilterFunction`。它只向构造时指定的
+精确 Origin（scheme、host、有效端口）发送 `X-Tenant-Id`；不匹配的请求会先移除已有租户头，且不读取
+当前用户。匹配请求保留非空显式租户头，否则在订阅时通过 `CurrentUserProvider#getCurrentUserMono()`
+读取当前租户。过滤器不透传认证令牌，也不会自动注册到全局 `WebClient.Builder`。
+租户头必须为单值且不能包含 HTTP 控制字符；显式跨租户调用的业务授权由调用方负责。
+
+```java
+HttpClient httpClient = HttpClient.create().followRedirect(false);
+WebClient tenantClient = WebClient.builder()
+        .clientConnector(new ReactorClientHttpConnector(httpClient))
+        .filter(new TenantForwardingExchangeFilterFunction(currentUserProvider,
+                List.of(URI.create("https://orders.example.test"))))
+        .build();
+```
+
+允许 Origin 必须不含 userinfo、路径、查询参数和片段，例如 `https://orders.example.test`；默认端口会按
+HTTP 80、HTTPS 443 规范化。传输层重定向不会再次经过 `ExchangeFilterFunction`，因此使用该过滤器时必须
+关闭自动重定向；上例仅说明 Reactor Netty 的配置，不代表其他连接器也已覆盖。
+
 ## 请求参数令牌
 
 `web-plus-security` 提供 `RequestParameterTokenResolver`，供认证过滤器或网关适配器显式解析

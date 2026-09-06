@@ -20,13 +20,13 @@ class IpUtilsTest {
     }
 
     @Test
-    void getClientIp_acceptsForwardedHeadersFromTrustedInternalPeer() {
+    void getClientIp_usesTcpPeerEvenWhenPeerIsPrivate() {
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Forwarded-For", "203.0.113.10, 10.0.0.8");
 
         String clientIp = IpUtils.getClientIp(headers, new InetSocketAddress("10.0.0.2", 8080));
 
-        assertThat(clientIp).isEqualTo("203.0.113.10");
+        assertThat(clientIp).isEqualTo("10.0.0.2");
     }
 
     @Test

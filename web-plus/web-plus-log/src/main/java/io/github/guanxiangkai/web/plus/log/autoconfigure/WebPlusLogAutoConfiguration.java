@@ -1,5 +1,6 @@
 package io.github.guanxiangkai.web.plus.log.autoconfigure;
 
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.log.aspect.*;
 import io.github.guanxiangkai.web.plus.log.context.OperationLogContextAccessor;
 import io.github.guanxiangkai.web.plus.log.filter.AccessLogFilter;
@@ -65,8 +66,8 @@ public class WebPlusLogAutoConfiguration {
     @ConditionalOnMissingBean(OperationLogAspect.class)
     @ConditionalOnProperty(prefix = "web-plus.log", name = "operation-log-enabled",
             havingValue = "true", matchIfMissing = true)
-    public OperationLogAspect operationLogAspect() {
-        return new OperationLogAspect();
+    public OperationLogAspect operationLogAspect(ClientIpResolver clientIpResolver) {
+        return new OperationLogAspect(clientIpResolver);
     }
 
     /**
@@ -76,8 +77,8 @@ public class WebPlusLogAutoConfiguration {
     @ConditionalOnMissingBean(LoginLogAspect.class)
     @ConditionalOnProperty(prefix = "web-plus.log", name = "login-log-enabled",
             havingValue = "true", matchIfMissing = true)
-    public LoginLogAspect loginLogAspect() {
-        return new LoginLogAspect();
+    public LoginLogAspect loginLogAspect(ClientIpResolver clientIpResolver) {
+        return new LoginLogAspect(clientIpResolver);
     }
 
     /**
@@ -87,9 +88,10 @@ public class WebPlusLogAutoConfiguration {
     @ConditionalOnProperty(prefix = "web-plus.log", name = "access-log-enabled",
             havingValue = "true", matchIfMissing = true)
     public AccessLogFilter accessLogFilter(LogProperties props,
-                                           @Autowired(required = false) AccessLogHandler accessLogHandler) {
+                                           @Autowired(required = false) AccessLogHandler accessLogHandler,
+                                           ClientIpResolver clientIpResolver) {
         Class<?> entityClass = resolveClass(props.accessLogEntityClass(), "accessLogEntityClass");
-        return new AccessLogFilter(props.ignorePaths(), accessLogHandler, entityClass);
+        return new AccessLogFilter(props.ignorePaths(), accessLogHandler, entityClass, clientIpResolver);
     }
 
     /**

@@ -4,8 +4,8 @@ import io.github.guanxiangkai.web.plus.core.context.CurrentUser;
 import io.github.guanxiangkai.web.plus.core.context.CurrentUserHolder;
 import io.github.guanxiangkai.web.plus.core.context.RequestContext;
 import io.github.guanxiangkai.web.plus.core.context.RequestContextHolder;
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.core.spi.CurrentUserProvider;
-import io.github.guanxiangkai.web.plus.core.util.IpUtils;
 import io.github.guanxiangkai.web.plus.core.util.SafeSpelTemplateEvaluator;
 import io.github.guanxiangkai.web.plus.log.annotation.OperationLog;
 import io.github.guanxiangkai.web.plus.log.context.OperationLogContext;
@@ -38,6 +38,17 @@ import java.util.UUID;
 @Slf4j
 @Aspect
 public class OperationLogAspect {
+
+    private final ClientIpResolver clientIpResolver;
+
+    /**
+     * 创建操作日志切面。
+     *
+     * @param clientIpResolver 客户端 IP 解析策略
+     */
+    public OperationLogAspect(ClientIpResolver clientIpResolver) {
+        this.clientIpResolver = clientIpResolver;
+    }
 
     @Autowired(required = false)
     private OperationLogHandler operationLogHandler;
@@ -193,7 +204,7 @@ public class OperationLogAspect {
 
             if (exchange != null) {
                 ServerHttpRequest req = exchange.getRequest();
-                clientIp = IpUtils.getClientIp(req);
+                clientIp = clientIpResolver.resolve(req);
                 requestMethod = req.getMethod().name();
                 requestUrl = req.getURI().getPath();
                 userAgent = req.getHeaders().getFirst("User-Agent");
