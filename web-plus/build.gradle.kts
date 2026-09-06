@@ -35,7 +35,7 @@ allprojects {
 }
 
 val lombokPlugin: Provider<PluginDependency> = libs.plugins.lombok
-val lombokVersion = libs.versions.lombok
+val lombokVersion = libs.versions.lombok.asProvider()
 val springBootDependencies: Provider<MinimalExternalModuleDependency> = libs.spring.boot.dependencies
 val springCloudDependencies: Provider<MinimalExternalModuleDependency> = libs.spring.cloud.dependencies
 val slf4jApi: Provider<MinimalExternalModuleDependency> = libs.slf4j.api

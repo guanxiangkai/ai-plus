@@ -29,7 +29,7 @@ allprojects {
 
 // ── 在 subprojects{} 中无法直接访问 libs，提前提取引用 ──
 val lombokPlugin: Provider<PluginDependency> = libs.plugins.lombok
-val lombokVersion = libs.versions.lombok
+val lombokVersion = libs.versions.lombok.asProvider()
 val springBootDependencies: Provider<MinimalExternalModuleDependency> = libs.spring.boot.dependencies
 val slf4jApi: Provider<MinimalExternalModuleDependency> = libs.slf4j.api
 val testingBundle: Provider<ExternalModuleDependencyBundle> = libs.bundles.testing
