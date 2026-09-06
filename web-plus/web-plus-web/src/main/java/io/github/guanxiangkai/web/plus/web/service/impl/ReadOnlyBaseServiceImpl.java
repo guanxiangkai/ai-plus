@@ -95,11 +95,22 @@ public abstract class ReadOnlyBaseServiceImpl<Q extends PageQuery, LV, DV, E ext
         return getRepository().entityClass().getSimpleName();
     }
 
+    /**
+     * 查询分页结果并按响应策略链转换记录，保留仓库提供的全部分页元数据。
+     *
+     * @param query 分页查询条件
+     * @return 包含最终转换结果的不可变分页响应
+     */
     @Override
     public PageResponse<LV> list(Q query) {
         PageResponse<LV> page = getRepository().findPageVo(query, buildQuerySpec(query), buildSort(query));
-        translateList(page.records());
-        return page;
+        return new PageResponse<>(
+                translateList(page.records()),
+                page.total(),
+                page.pageNum(),
+                page.pageSize(),
+                page.pages()
+        );
     }
 
     @Override

@@ -58,6 +58,14 @@ tasks.named("build") {
     dependsOn(buildAll)
 }
 
+tasks.register("generatePomAll") {
+    group = "verification"
+    description = "生成全部模块的 Maven POM，用于验证发布版本与依赖，不签名或发布制品"
+    dependsOn(moduleBuilds.map { (module, buildName) ->
+        gradle.includedBuild(buildName).task(":$module:generatePomFileForMavenJavaPublication")
+    })
+}
+
 tasks.named("clean") {
     dependsOn(
         gradle.includedBuild("jpa-plus").task(":cleanAll"),

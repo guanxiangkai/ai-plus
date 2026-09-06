@@ -1,5 +1,7 @@
 package io.github.guanxiangkai.jpa.plus.query.plan;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.guanxiangkai.jpa.plus.core.exception.JpaPlusException;
 import io.github.guanxiangkai.jpa.plus.core.util.NamingUtils;
 import io.github.guanxiangkai.jpa.plus.core.util.ReflectionUtils;
@@ -12,8 +14,6 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.StringJoiner;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 映射计划编译器
@@ -27,44 +27,46 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MappingPlanCompiler {
 
     /**
-     * P1-8 fix: Replaced {@code Collections.synchronizedMap(LinkedHashMap)} with
-     * {@code ConcurrentHashMap}. The previous implementation held a single global mutex for the
-     * entire duration of every {@code computeIfAbsent} call, including the expensive
-     * {@code doCompile()} work (reflection, MethodHandle lookups), serializing ALL callers.
-     * {@code ConcurrentHashMap.computeIfAbsent} uses per-bin locking, so different cache keys
-     * are computed in parallel with no global contention.
+     * 按目标类隔离映射计划缓存，避免不同类加载器中同名类型共享计划。
      *
-     * <p>LRU eviction is intentionally omitted: the key space is bounded by the number of distinct
-     * (entity-type, column-list) permutations used at runtime, which is small and stable.
-     * If the application dynamically generates an unbounded number of column lists, re-introduce
-     * eviction via {@link java.util.concurrent.ConcurrentLinkedHashMap} or Caffeine.</p>
+     * <p>每个目标类最多缓存 256 种有序列标签组合，防止动态投影持续占用内存。</p>
      */
-    private static final ConcurrentHashMap<String, MappingPlan<?>> CACHE = new ConcurrentHashMap<>(256);
+    private static final ClassValue<Cache<List<String>, MappingPlan<?>>> CACHE = new ClassValue<>() {
+        @Override
+        protected Cache<List<String>, MappingPlan<?>> computeValue(Class<?> type) {
+            return Caffeine.newBuilder().maximumSize(256).build();
+        }
+    };
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     /**
-     * 编译映射计划
+     * 编译或复用指定目标类型与有序列标签的映射计划。
+     *
+     * @param targetType 具有可访问无参构造器的目标类型
+     * @param columns 按结果集位置排列的列定义，优先使用别名匹配字段
+     * @param <R> 结果类型
+     * @return 不可变字段映射计划；容量淘汰后可重新编译
+     * @throws JpaPlusException 无法访问构造器、字段或 setter 时抛出
      */
     public static <R> MappingPlan<R> compile(Class<R> targetType, List<SelectColumn> columns) {
-        // 缓存键使用有序列名连接，避免 hashCode() 碰撞导致错误缓存命中
-        StringJoiner sj = new StringJoiner(",", targetType.getName() + "#", "");
+        List<String> columnLabels = new ArrayList<>(columns.size());
         for (SelectColumn sc : columns) {
-            sj.add(sc.column().alias() != null ? sc.column().alias() : sc.column().columnName());
+            columnLabels.add(sc.column().alias() != null ? sc.column().alias() : sc.column().columnName());
         }
-        String cacheKey = sj.toString();
-        return CACHE.computeIfAbsent(cacheKey, _ -> doCompile(targetType, columns)).castTo(targetType);
+        List<String> cacheKey = List.copyOf(columnLabels);
+        MappingPlan<?> plan = CACHE.get(targetType).get(cacheKey, _ -> doCompile(targetType, cacheKey));
+        return plan.castTo(targetType);
     }
 
-    private static <R> MappingPlan<R> doCompile(Class<R> targetType, List<SelectColumn> columns) {
+    private static MappingPlan<?> doCompile(Class<?> targetType, List<String> columnLabels) {
         try {
             MethodHandles.Lookup targetLookup = MethodHandles.privateLookupIn(targetType, LOOKUP);
             MethodHandle constructorHandle = targetLookup.findConstructor(targetType, MethodType.methodType(void.class))
                     .asType(MethodType.methodType(Object.class));
             List<FieldMapping> mappings = new ArrayList<>();
 
-            for (int i = 0; i < columns.size(); i++) {
-                SelectColumn sc = columns.get(i);
-                String fieldName = sc.column().alias() != null ? sc.column().alias() : sc.column().columnName();
+            for (int i = 0; i < columnLabels.size(); i++) {
+                String fieldName = columnLabels.get(i);
 
                 // 尝试查找同名字段
                 Field field = ReflectionUtils.findField(targetType, fieldName);

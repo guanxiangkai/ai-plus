@@ -1,7 +1,8 @@
 package io.github.guanxiangkai.redis.plus.queue.impl;
 
-import io.github.guanxiangkai.redis.plus.core.serializer.ValueSerializer;
 import io.github.guanxiangkai.redis.plus.core.async.RedisPlusAsyncExecutor;
+import io.github.guanxiangkai.redis.plus.core.serializer.ValueSerializer;
+import io.github.guanxiangkai.redis.plus.queue.QueueDelivery;
 import io.github.guanxiangkai.redis.plus.queue.QueuePoisonMessage;
 import io.github.guanxiangkai.redis.plus.queue.QueuePoisonReason;
 import io.github.guanxiangkai.redis.plus.queue.QueueReadFailurePolicy;
@@ -23,10 +24,18 @@ import org.springframework.data.redis.core.script.RedisScript;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -139,6 +148,95 @@ class RedisStreamQueueTest {
         verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
     }
 
+    @Test
+    void acknowledge_shouldRemainRetryableWhenFirstAckFails() {
+        when(streamOps.createGroup("stream:orders", ReadOffset.from("0-0"), "group-a")).thenReturn("OK");
+        RecordId recordId = RecordId.of("5-0");
+        when(serializer.deserialize("payload-json", String.class)).thenReturn("payload");
+        when(streamOps.read(any(org.springframework.data.redis.connection.stream.Consumer.class),
+                any(StreamReadOptions.class), any(StreamOffset[].class)))
+                .thenReturn(List.of(record(recordId)));
+        when(streamOps.acknowledge("stream:orders", "group-a", recordId))
+                .thenThrow(new IllegalStateException("temporary Redis failure"))
+                .thenReturn(1L);
+        RedisStreamQueue<String> queue = streamQueue(PoisonMessageHandler.logAndDiscard());
+
+        QueueDelivery<String> delivery = Objects.requireNonNull(queue.receive(Duration.ZERO));
+
+        assertThrows(IllegalStateException.class, delivery::acknowledge);
+        assertFalse(delivery.isAcknowledged());
+        delivery.acknowledge();
+
+        assertTrue(delivery.isAcknowledged());
+        verify(streamOps, times(2)).acknowledge("stream:orders", "group-a", recordId);
+    }
+
+    @Test
+    void acknowledge_shouldSerializeConcurrentCalls() throws Exception {
+        when(streamOps.createGroup("stream:orders", ReadOffset.from("0-0"), "group-a")).thenReturn("OK");
+        RecordId recordId = RecordId.of("6-0");
+        when(serializer.deserialize("payload-json", String.class)).thenReturn("payload");
+        when(streamOps.read(any(org.springframework.data.redis.connection.stream.Consumer.class),
+                any(StreamReadOptions.class), any(StreamOffset[].class)))
+                .thenReturn(List.of(record(recordId)));
+        CountDownLatch ackStarted = new CountDownLatch(1);
+        CountDownLatch allowAck = new CountDownLatch(1);
+        when(streamOps.acknowledge("stream:orders", "group-a", recordId)).thenAnswer(invocation -> {
+            ackStarted.countDown();
+            assertTrue(allowAck.await(5, TimeUnit.SECONDS));
+            return 1L;
+        });
+        RedisStreamQueue<String> queue = streamQueue(PoisonMessageHandler.logAndDiscard());
+        QueueDelivery<String> delivery = Objects.requireNonNull(queue.receive(Duration.ZERO));
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            var first = executor.submit(delivery::acknowledge);
+            assertTrue(ackStarted.await(5, TimeUnit.SECONDS));
+            assertFalse(delivery.isAcknowledged());
+            var second = executor.submit(delivery::acknowledge);
+
+            allowAck.countDown();
+            first.get(5, TimeUnit.SECONDS);
+            second.get(5, TimeUnit.SECONDS);
+        } finally {
+            allowAck.countDown();
+            executor.shutdownNow();
+        }
+
+        assertTrue(delivery.isAcknowledged());
+        verify(streamOps, times(1)).acknowledge("stream:orders", "group-a", recordId);
+    }
+
+    @Test
+    void subscribe_shouldRestoreStoppedStateWhenExecutorRejectsTask() {
+        when(streamOps.createGroup("stream:orders", ReadOffset.from("0-0"), "group-a")).thenReturn("OK");
+        RedisPlusAsyncExecutor rejectedExecutor = mock(RedisPlusAsyncExecutor.class);
+        doThrow(new RejectedExecutionException("saturated"))
+                .doNothing()
+                .doThrow(new RejectedExecutionException("saturated"))
+                .doNothing()
+                .when(rejectedExecutor).execute(anyString(), any(Runnable.class));
+        RedisStreamQueue<String> streamQueue = new RedisStreamQueue<>(
+                "orders", "group-a", "stream:", String.class, redisTemplate, serializer,
+                null, rejectedExecutor, QueueRuntimePolicy.defaults());
+        RedisListQueue<String> listQueue = new RedisListQueue<>(
+                "orders", "list:", String.class, redisTemplate, serializer,
+                rejectedExecutor, QueueRuntimePolicy.defaults());
+
+        assertThrows(RejectedExecutionException.class, () -> streamQueue.subscribe(ignored -> {
+        }));
+        assertFalse(streamQueue.isRunning());
+        assertTrue(streamQueue.subscribe(ignored -> {
+        }).isRunning());
+        streamQueue.stop();
+        assertThrows(RejectedExecutionException.class, () -> listQueue.subscribe(ignored -> {
+        }));
+        assertFalse(listQueue.isRunning());
+        assertTrue(listQueue.subscribe(ignored -> {
+        }).isRunning());
+        listQueue.stop();
+    }
+
     private RedisStreamQueue<String> streamQueue(PoisonMessageHandler poisonHandler) {
         return new RedisStreamQueue<>(
                 "orders", "group-a", "stream:", String.class, redisTemplate, serializer,
@@ -146,6 +244,11 @@ class RedisStreamQueueTest {
                 new QueueRuntimePolicy(QueueRetryStrategy.noRetry(), DeadLetterHandler.logAndDiscard(),
                 Duration.ofSeconds(1), 10, null, false, Duration.ofMinutes(5), 0,
                 poisonHandler, QueueReadFailurePolicy.defaults()));
+    }
+
+    private static MapRecord<String, Object, Object> record(RecordId recordId) {
+        return MapRecord.create("stream:orders", Map.<Object, Object>of("payload", "payload-json"))
+                .withId(recordId);
     }
 
     @SuppressWarnings("unchecked")

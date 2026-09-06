@@ -129,34 +129,45 @@ public class RedisListQueue<T> implements SimpleQueue<T> {
         return toDelivery(raw);
     }
 
+    /**
+     * 提交 List 消费任务；任务提交失败时恢复未运行状态，以允许调用方修正执行器后重新订阅。
+     *
+     * @param consumer 消息消费者
+     * @return 可停止并查询运行状态的订阅句柄
+     */
     @Override
     public QueueSubscription subscribe(Consumer<T> consumer) {
         if (!running.compareAndSet(false, true)) {
             log.warn("[redis-plus] 消息队列 {} 已有消费者在运行", queueName);
             return subscription();
         }
-        asyncExecutor.execute("queue-list-" + queueName, () -> {
-            log.info("[redis-plus] 消息队列消费者启动：{}", queueName);
-            int consecutiveReadFailures = 0;
-            while (running.get()) {
-                try {
-                    QueueDelivery<T> delivery = receive(pollTimeout);
-                    consecutiveReadFailures = 0;
-                    if (delivery != null) {
-                        dispatchWithRetry(delivery.message(), consumer, 1);
-                    }
-                } catch (Exception e) {
-                    consecutiveReadFailures++;
-                    Duration backoff = readFailurePolicy.delayFor(consecutiveReadFailures);
-                    log.error("[redis-plus] List 队列读取失败，queue={}, consecutiveFailures={}, backoff={}",
-                            queueName, consecutiveReadFailures, backoff, e);
-                    if (!pauseAfterReadFailure(backoff)) {
-                        break;
+        try {
+            asyncExecutor.execute("queue-list-" + queueName, () -> {
+                log.info("[redis-plus] 消息队列消费者启动：{}", queueName);
+                int consecutiveReadFailures = 0;
+                while (running.get()) {
+                    try {
+                        QueueDelivery<T> delivery = receive(pollTimeout);
+                        consecutiveReadFailures = 0;
+                        if (delivery != null) {
+                            dispatchWithRetry(delivery.message(), consumer, 1);
+                        }
+                    } catch (Exception e) {
+                        consecutiveReadFailures++;
+                        Duration backoff = readFailurePolicy.delayFor(consecutiveReadFailures);
+                        log.error("[redis-plus] List 队列读取失败，queue={}, consecutiveFailures={}, backoff={}",
+                                queueName, consecutiveReadFailures, backoff, e);
+                        if (!pauseAfterReadFailure(backoff)) {
+                            break;
+                        }
                     }
                 }
-            }
-            log.info("[redis-plus] 消息队列消费者停止：{}", queueName);
-        });
+                log.info("[redis-plus] 消息队列消费者停止：{}", queueName);
+            });
+        } catch (RuntimeException e) {
+            running.set(false);
+            throw e;
+        }
         return subscription();
     }
 
