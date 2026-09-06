@@ -8,6 +8,7 @@ import io.github.guanxiangkai.redis.plus.datasource.aop.RedisDSAspect;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.SslVerifyMode;
 import io.lettuce.core.SocketOptions;
+import io.lettuce.core.TimeoutOptions;
 import io.lettuce.core.api.StatefulConnection;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.beans.factory.ObjectProvider;
@@ -33,6 +34,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceClientConfigurat
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -189,8 +191,8 @@ public class RedisPlusDataSourceAutoConfiguration {
             throw new IllegalArgumentException("Redis 命令和连接超时必须大于 0，关闭超时不能为负数");
         }
         RedisPlusDataSourceProperties.SslProperties ssl = source.getSsl();
-        if (ssl == null || !ssl.isStartTlsConfigurationValid()) {
-            throw new IllegalArgumentException("启用 StartTLS 前必须先启用 TLS");
+        if (ssl == null) {
+            throw new IllegalArgumentException("Redis TLS 配置不能为空");
         }
         RedisPlusDataSourceProperties.PoolProperties pool = source.getPool();
         if (pool == null || !pool.isPoolConfigurationValid()) {
@@ -212,9 +214,13 @@ public class RedisPlusDataSourceAutoConfiguration {
     private static void configureClientConfiguration(
             RedisPlusDataSourceProperties.RedisSourceProperties source,
             LettuceClientConfiguration.LettuceClientConfigurationBuilder clientBuilder) {
+        Duration quietPeriod = LettuceClientConfiguration.defaultConfiguration().getShutdownQuietPeriod();
         clientBuilder.commandTimeout(source.getTimeout())
                 .shutdownTimeout(source.getShutdownTimeout())
+                .shutdownQuietPeriod(quietPeriod.compareTo(source.getShutdownTimeout()) > 0
+                        ? source.getShutdownTimeout() : quietPeriod)
                 .clientOptions(ClientOptions.builder()
+                        .timeoutOptions(TimeoutOptions.enabled())
                         .socketOptions(SocketOptions.builder()
                                 .connectTimeout(source.getConnectTimeout())
                                 .build())
@@ -226,9 +232,6 @@ public class RedisPlusDataSourceAutoConfiguration {
         if (ssl.isEnabled()) {
             LettuceClientConfiguration.LettuceSslClientConfigurationBuilder sslBuilder = clientBuilder.useSsl();
             sslBuilder.verifyPeer(SslVerifyMode.FULL);
-            if (ssl.isStartTls()) {
-                sslBuilder.startTls();
-            }
         }
     }
 

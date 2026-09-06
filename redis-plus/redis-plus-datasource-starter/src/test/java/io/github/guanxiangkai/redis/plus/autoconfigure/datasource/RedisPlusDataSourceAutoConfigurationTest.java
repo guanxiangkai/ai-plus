@@ -48,6 +48,8 @@ class RedisPlusDataSourceAutoConfigurationTest {
                     assertThat(factory.getClientConfiguration().getClientOptions()).isPresent();
                     assertThat(factory.getClientConfiguration().getClientOptions().orElseThrow()
                             .getSocketOptions().getConnectTimeout()).isEqualTo(Duration.ofSeconds(2));
+                    assertThat(factory.getClientConfiguration().getClientOptions().orElseThrow()
+                            .getTimeoutOptions().isTimeoutCommands()).isTrue();
                     assertThat(factory.getClientConfiguration())
                             .isInstanceOf(LettucePoolingClientConfiguration.class);
                     LettucePoolingClientConfiguration clientConfiguration =
@@ -63,8 +65,7 @@ class RedisPlusDataSourceAutoConfigurationTest {
         contextRunner
                 .withPropertyValues(
                         "redis-plus.datasource.sources.primary.pool.enabled=false",
-                        "redis-plus.datasource.sources.primary.ssl.enabled=true",
-                        "redis-plus.datasource.sources.primary.ssl.start-tls=true")
+                        "redis-plus.datasource.sources.primary.ssl.enabled=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     LettuceConnectionFactory factory = configuredFactory(context);
@@ -72,7 +73,7 @@ class RedisPlusDataSourceAutoConfigurationTest {
                     assertThat(factory.getClientConfiguration())
                             .isNotInstanceOf(LettucePoolingClientConfiguration.class);
                     assertThat(factory.getClientConfiguration().isUseSsl()).isTrue();
-                    assertThat(factory.getClientConfiguration().isStartTls()).isTrue();
+                    assertThat(factory.getClientConfiguration().isStartTls()).isFalse();
                     assertThat(factory.getClientConfiguration().getVerifyMode()).isEqualTo(SslVerifyMode.FULL);
                 });
     }
@@ -81,10 +82,6 @@ class RedisPlusDataSourceAutoConfigurationTest {
     void invalidConnectionProperties_preventAutoConfiguration() {
         contextRunner
                 .withPropertyValues("redis-plus.datasource.sources.primary.connect-timeout=-1s")
-                .run(context -> assertThat(context).hasFailed());
-
-        contextRunner
-                .withPropertyValues("redis-plus.datasource.sources.primary.ssl.start-tls=true")
                 .run(context -> assertThat(context).hasFailed());
 
         contextRunner
@@ -119,6 +116,16 @@ class RedisPlusDataSourceAutoConfigurationTest {
                     LettucePoolingClientConfiguration client = (LettucePoolingClientConfiguration)
                             configuredFactory(context).getClientConfiguration();
                     assertThat(client.getPoolConfig().getMaxWaitDuration()).isEqualTo(Duration.ZERO);
+                });
+    }
+
+    @Test
+    void zeroShutdownTimeout_alsoDisablesQuietPeriod() {
+        contextRunner.withPropertyValues("redis-plus.datasource.sources.primary.shutdown-timeout=0s")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(configuredFactory(context).getClientConfiguration().getShutdownTimeout()).isZero();
+                    assertThat(configuredFactory(context).getClientConfiguration().getShutdownQuietPeriod()).isZero();
                 });
     }
 

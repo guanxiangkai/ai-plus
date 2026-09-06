@@ -42,7 +42,7 @@ public class RedisPlusDataSourceProperties {
          */
         private String username = "";
         /**
-         * Redis 客户端名；原样传递给 {@code CLIENT SETNAME}，空字符串表示不设置。
+         * Redis 客户端名；原样传递给 CLIENT SETNAME，空字符串表示不设置。
          */
         private String clientName = "";
         @Min(0)
@@ -52,7 +52,7 @@ public class RedisPlusDataSourceProperties {
         @NotNull
         private Duration connectTimeout = Duration.ofSeconds(3);
         /**
-         * Lettuce 客户端关闭超时；单位为 {@link Duration}，零表示不等待。
+         * Lettuce 客户端关闭超时；以 Duration 表示，零表示不等待。
          */
         @NotNull
         private Duration shutdownTimeout = Duration.ofMillis(100);
@@ -93,20 +93,6 @@ public class RedisPlusDataSourceProperties {
          * 是否启用 TLS；启用后始终校验服务端证书和主机名。
          */
         private boolean enabled;
-        /**
-         * 是否在 TLS 已启用时使用 StartTLS。
-         */
-        private boolean startTls;
-
-        /**
-         * StartTLS 只在 TLS 已启用时有效。
-         *
-         * @return TLS 未启用时未设置 StartTLS，或 TLS 已启用时返回 {@code true}
-         */
-        @AssertTrue(message = "启用 StartTLS 前必须先启用 TLS")
-        public boolean isStartTlsConfigurationValid() {
-            return enabled || !startTls;
-        }
     }
 
     @Getter
