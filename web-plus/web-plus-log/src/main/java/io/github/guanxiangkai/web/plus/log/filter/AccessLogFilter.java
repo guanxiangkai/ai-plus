@@ -4,7 +4,7 @@ import io.github.guanxiangkai.web.plus.core.context.CurrentUser;
 import io.github.guanxiangkai.web.plus.core.context.CurrentUserHolder;
 import io.github.guanxiangkai.web.plus.core.context.RequestContext;
 import io.github.guanxiangkai.web.plus.core.context.RequestContextHolder;
-import io.github.guanxiangkai.web.plus.core.util.IpUtils;
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.log.entity.BaseLog;
 import io.github.guanxiangkai.web.plus.log.spi.AccessLogHandler;
 import io.github.guanxiangkai.web.plus.log.support.LogEntityBinder;
@@ -37,12 +37,23 @@ public class AccessLogFilter implements WebFilter, Ordered {
     private final List<String> ignorePaths;
     private final AccessLogHandler accessLogHandler;
     private final Class<?> entityClass;
+    private final ClientIpResolver clientIpResolver;
     private final AntPathMatcher antMatcher = new AntPathMatcher();
 
-    public AccessLogFilter(List<String> ignorePaths, AccessLogHandler accessLogHandler, Class<?> entityClass) {
+    /**
+     * 创建访问日志过滤器。
+     *
+     * @param ignorePaths 不记录访问日志的路径规则
+     * @param accessLogHandler 访问日志处理 SPI，可为 {@code null}
+     * @param entityClass 访问日志实体类型，可为 {@code null}
+     * @param clientIpResolver 客户端 IP 解析策略
+     */
+    public AccessLogFilter(List<String> ignorePaths, AccessLogHandler accessLogHandler, Class<?> entityClass,
+                           ClientIpResolver clientIpResolver) {
         this.ignorePaths = ignorePaths;
         this.accessLogHandler = accessLogHandler;
         this.entityClass = entityClass;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @Override
@@ -58,7 +69,7 @@ public class AccessLogFilter implements WebFilter, Ordered {
             return chain.filter(exchange);
         }
 
-        final String ip = IpUtils.getClientIp(exchange.getRequest());
+        final String ip = clientIpResolver.resolve(exchange.getRequest());
         final String userAgent = exchange.getRequest().getHeaders().getFirst("User-Agent");
         final String method = exchange.getRequest().getMethod().name();
         final long startTime = System.currentTimeMillis();

@@ -1,8 +1,8 @@
 package io.github.guanxiangkai.web.plus.log.aspect;
 
 import io.github.guanxiangkai.web.plus.core.context.RequestContextHolder;
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.core.spi.CurrentUserProvider;
-import io.github.guanxiangkai.web.plus.core.util.IpUtils;
 import io.github.guanxiangkai.web.plus.log.annotation.LoginLog;
 import io.github.guanxiangkai.web.plus.log.entity.BaseLog;
 import io.github.guanxiangkai.web.plus.log.spi.LoginLogHandler;
@@ -26,6 +26,17 @@ import reactor.core.publisher.Mono;
 @Aspect
 public class LoginLogAspect {
 
+    private final ClientIpResolver clientIpResolver;
+
+    /**
+     * 创建登录日志切面。
+     *
+     * @param clientIpResolver 客户端 IP 解析策略
+     */
+    public LoginLogAspect(ClientIpResolver clientIpResolver) {
+        this.clientIpResolver = clientIpResolver;
+    }
+
     @Autowired(required = false)
     private LoginLogHandler loginLogHandler;
 
@@ -41,7 +52,7 @@ public class LoginLogAspect {
 
         if (exchange != null) {
             ServerHttpRequest request = exchange.getRequest();
-            ip = IpUtils.getClientIp(request);
+            ip = clientIpResolver.resolve(request);
             userAgent = request.getHeaders().getFirst("User-Agent");
         }
 

@@ -2,7 +2,7 @@ package io.github.guanxiangkai.web.plus.protection.filter;
 
 import io.github.guanxiangkai.web.plus.core.enums.HttpMethod;
 import io.github.guanxiangkai.web.plus.core.model.ApiResponse;
-import io.github.guanxiangkai.web.plus.core.util.IpUtils;
+import io.github.guanxiangkai.web.plus.core.net.ClientIpResolver;
 import io.github.guanxiangkai.web.plus.protection.properties.DebounceProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -53,14 +53,25 @@ public class DebounceFilter implements WebFilter, Ordered {
     private final DebounceProperties properties;
     private final ObjectMapper objectMapper;
     private final List<PathPattern> excludePatterns;
+    private final ClientIpResolver clientIpResolver;
 
+    /**
+     * 创建 API 防抖过滤器。
+     *
+     * @param redisTemplate Redis 原子写入模板
+     * @param properties 防抖配置
+     * @param objectMapper 统一响应 JSON 编码器
+     * @param clientIpResolver 无认证请求的客户端 IP 解析策略
+     */
     public DebounceFilter(ReactiveStringRedisTemplate redisTemplate,
                           DebounceProperties properties,
-                          ObjectMapper objectMapper) {
+                          ObjectMapper objectMapper,
+                          ClientIpResolver clientIpResolver) {
         this.redisTemplate = redisTemplate;
         this.properties = properties;
         this.objectMapper = objectMapper;
         this.excludePatterns = buildPatterns(properties.excludePaths());
+        this.clientIpResolver = clientIpResolver;
     }
 
     @Override
@@ -148,8 +159,7 @@ public class DebounceFilter implements WebFilter, Ordered {
     }
 
     private String resolveClientIp(ServerHttpRequest request) {
-        // 仅在连接对端位于内网/本机时信任转发头，避免外网客户端伪造 X-Forwarded-For 绕过防抖。
-        return IpUtils.getClientIp(request);
+        return clientIpResolver.resolve(request);
     }
 
     private Mono<Void> writeDuplicateResponse(ServerWebExchange exchange) {

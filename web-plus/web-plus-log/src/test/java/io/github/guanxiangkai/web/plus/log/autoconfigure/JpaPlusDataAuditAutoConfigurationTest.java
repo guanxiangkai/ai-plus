@@ -1,5 +1,6 @@
 package io.github.guanxiangkai.web.plus.log.autoconfigure;
 
+import io.github.guanxiangkai.web.plus.core.config.ClientIpAutoConfiguration;
 import io.github.guanxiangkai.web.plus.log.bridge.JpaPlusDataAuditEventBridge;
 import io.github.guanxiangkai.web.plus.log.spi.DataChangeHandler;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ class JpaPlusDataAuditAutoConfigurationTest {
 
     private final ReactiveWebApplicationContextRunner contextRunner = new ReactiveWebApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(
+                    ClientIpAutoConfiguration.class,
                     WebPlusLogAutoConfiguration.class,
                     JpaPlusDataAuditAutoConfiguration.class))
             .withBean(ObjectMapper.class, ObjectMapper::new);

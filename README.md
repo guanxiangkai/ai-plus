@@ -110,3 +110,14 @@ Gradle Wrapper、三个能力族的 Version Catalog 与 GitHub Actions 由
 提交并晋级到 `main` 后，在 GitHub Actions 手工运行“发布 Maven 模块”并输入模块清单。发布前执行完整构建、测试和 POM 校验，实际发布版本以 `gradle/module-versions.properties` 为准；标签不会自动发布制品。
 
 发布通过 Central Portal 完成，并使用 GitHub Actions Secret 注入短期 Maven Central 用户令牌与内存 GPG 私钥。仓库、日志和构建产物不保存这些凭据。
+
+## 人工发布审查工具的接入边界
+
+`.github/scripts/verify-release-security-review.py` 是待接入的只读核验工具，当前发布工作流
+未调用它，CI 仅运行模拟 GitHub API 的契约测试。脚本绑定当前 Actions SHA、main 的手工发布上下文、
+同 SHA 的最新安全审查运行和 Environment 人工批准，缺少证据即失败；Python 优化模式不会关闭校验。
+
+正式接入前必须预先配置独立用户审批人、`independent-security-review` 环境的必需审批、
+禁止自行审批与管理员绕过，并独立保护安全审查工作流及其实际扫描内容。当前工具只支持直接 User
+审批人，团队成员身份与重新运行的审批关联尚不支持；环境规则更新后需要重新形成审查证据。
+API 返回成功或普通密钥扫描通过都不能替代这些前提，脚本不会自动创建环境或修改权限。

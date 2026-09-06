@@ -99,6 +99,8 @@ jackson-annotations = { group = "com.fasterxml.jackson.core", name = "jackson-an
 # ═══════════════════════════ Jakarta 验证 ═══════════════════════════
 # Jakarta Bean Validation API（@Validated / @NotNull / @Positive 等，版本由 Spring Boot BOM 管理）
 jakarta-validation-api = { group = "jakarta.validation", name = "jakarta.validation-api" }
+# 数据源属性的测试使用真实 Bean Validation，版本由 Spring Boot BOM 管理。
+spring-boot-starter-validation = { group = "org.springframework.boot", name = "spring-boot-starter-validation" }
 
 # ═══════════════════════════ 测试 ═══════════════════════════
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }

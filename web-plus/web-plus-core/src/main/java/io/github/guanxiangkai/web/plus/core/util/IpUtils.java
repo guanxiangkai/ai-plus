@@ -5,14 +5,11 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.jspecify.annotations.Nullable;
 import org.springframework.util.StringUtils;
 
-import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * IP 工具类（WebFlux 版）
@@ -28,11 +25,6 @@ public final class IpUtils {
     };
 
     private static final String UNKNOWN = "unknown";
-    private static final Pattern IPV4_LITERAL = Pattern.compile(
-            "^(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}$"
-    );
-    private static final Pattern IPV6_LITERAL = Pattern.compile("^[0-9A-Fa-f:.]+(?:%[-0-9A-Za-z._]+)?$");
-
     private IpUtils() {
     }
 
@@ -47,21 +39,17 @@ public final class IpUtils {
      * 通用方法（兼容 WebFlux / 手动传参）
      *
      * @param headers       请求头
-     * @param remoteAddress 原始远端地址
-     *                      仅当连接对端位于内网/本机时，才会信任转发头中的客户端 IP。
+     * @param remoteAddress 原始 TCP 连接对端地址
+     * @return TCP 连接对端的字面量 IP；没有可用对端地址时返回 {@code unknown}
+     *
+     * <p>此兼容入口不再根据内网地址自动信任转发头。需要恢复经明确可信代理
+     * 转发的客户端地址时，注入 {@link io.github.guanxiangkai.web.plus.core.net.ClientIpResolver}。</p>
      */
     public static String getClientIp(HttpHeaders headers, @Nullable InetSocketAddress remoteAddress) {
         String remoteIp = Optional.ofNullable(remoteAddress)
                 .map(addr -> addr.getAddress() != null ? addr.getAddress().getHostAddress() : null)
                 .map(IpUtils::normalizeIpLiteral)
                 .orElse(null);
-        if (shouldTrustForwardedHeaders(remoteIp)) {
-            return getForwardedIps(headers).stream()
-                    .map(IpUtils::normalizeIpLiteral)
-                    .filter(StringUtils::hasText)
-                    .findFirst()
-                    .orElse(remoteIp);
-        }
         return StringUtils.hasText(remoteIp) ? remoteIp : UNKNOWN;
     }
 
@@ -89,12 +77,12 @@ public final class IpUtils {
         String normalizedIp = normalizeIpLiteral(ip);
         if (!StringUtils.hasText(normalizedIp)) return false;
         try {
-            InetAddress address = InetAddress.getByName(normalizedIp);
+            InetAddress address = InetAddress.ofLiteral(normalizedIp);
             if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isSiteLocalAddress()) {
                 return true;
             }
-            if (address instanceof Inet6Address inet6Address) {
-                byte[] bytes = inet6Address.getAddress();
+            if (address.getAddress().length == 16) {
+                byte[] bytes = address.getAddress();
                 int first = bytes[0] & 0xFF;
                 int second = bytes[1] & 0xFF;
                 if ((first & 0xFE) == 0xFC) {
@@ -102,7 +90,7 @@ public final class IpUtils {
                 }
                 return first == 0xFE && (second & 0xC0) == 0x80;
             }
-        } catch (UnknownHostException ignored) {
+        } catch (IllegalArgumentException ignored) {
             return false;
         }
         if (normalizedIp.startsWith("10.") || normalizedIp.startsWith("192.168.")) {
@@ -123,10 +111,6 @@ public final class IpUtils {
         return false;
     }
 
-    private static boolean shouldTrustForwardedHeaders(@Nullable String remoteIp) {
-        return StringUtils.hasText(remoteIp) && isIntranet(remoteIp);
-    }
-
     @Nullable
     public static String normalizeIpLiteral(@Nullable String ip) {
         if (!StringUtils.hasText(ip)) {
@@ -136,19 +120,11 @@ public final class IpUtils {
         if (candidate.startsWith("[") && candidate.endsWith("]") && candidate.length() > 2) {
             candidate = candidate.substring(1, candidate.length() - 1);
         }
-        if (!looksLikeIpLiteral(candidate)) {
-            return null;
-        }
         try {
-            InetAddress address = InetAddress.getByName(candidate);
+            InetAddress address = InetAddress.ofLiteral(candidate);
             return address.getHostAddress();
-        } catch (UnknownHostException ignored) {
+        } catch (IllegalArgumentException ignored) {
             return null;
         }
-    }
-
-    private static boolean looksLikeIpLiteral(String value) {
-        return IPV4_LITERAL.matcher(value).matches()
-                || (value.contains(":") && IPV6_LITERAL.matcher(value).matches());
     }
 }

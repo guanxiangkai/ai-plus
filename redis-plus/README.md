@@ -271,6 +271,9 @@ redis-plus:
 - **多 Redis 数据源**：
     - `redis-plus.datasource.sources` 下的每个 **map key 就是路由标签**，与 `@RedisDS` 注解值一一对应
     - `database` 字段是 Redis DB 编号（0~15），不是路由标签
+    - 每个数据源可设置 `username`（ACL 用户）、`password`、`client-name`、`timeout`、`connect-timeout` 和 `shutdown-timeout`；命令与连接超时必须大于零，关闭超时不能为负数
+    - `ssl.enabled=true` 使用直接 TLS 连接，客户端始终校验服务端证书和主机名；不提供首个写请求明文发送的 StartTLS 模式
+    - `pool.enabled=false` 使用非池化 Lettuce 客户端；启用时满足 `0 <= min-idle <= max-idle <= max-active` 且数量上限为正。`max-wait` 沿用 Commons Pool 语义：正值限定等待，零立即返回，负值无限等待；默认仍为 3 秒
     - `primary` 指定无注解时的默认数据源（必须在 `sources` 中存在）
     - 配置 `sources` 时 `MultiRedisConnectionFactory` 是主连接工厂，`RedisTemplate` 自动使用路由能力
     - 单数据源时只创建后备包装工厂，普通注入仍使用 Spring Boot 或应用定义的默认连接

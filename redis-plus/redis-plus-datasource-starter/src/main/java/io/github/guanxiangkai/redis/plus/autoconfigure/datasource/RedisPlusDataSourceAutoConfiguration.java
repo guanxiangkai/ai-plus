@@ -5,6 +5,11 @@ import io.github.guanxiangkai.redis.plus.autoconfigure.properties.RedisPlusDataS
 import io.github.guanxiangkai.redis.plus.datasource.MultiRedisConnectionFactory;
 import io.github.guanxiangkai.redis.plus.datasource.RedisRouteStrategy;
 import io.github.guanxiangkai.redis.plus.datasource.aop.RedisDSAspect;
+import io.lettuce.core.ClientOptions;
+import io.lettuce.core.SslVerifyMode;
+import io.lettuce.core.SocketOptions;
+import io.lettuce.core.TimeoutOptions;
+import io.lettuce.core.api.StatefulConnection;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -29,6 +34,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceClientConfigurat
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -77,12 +83,17 @@ public class RedisPlusDataSourceAutoConfiguration {
         Map<String, RedisPlusDataSourceProperties.RedisSourceProperties> sources = properties.getSources();
         RedisRouteStrategy routeStrategy = routeStrategyProvider.getIfAvailable();
         Map<String, RedisConnectionFactory> factories = new LinkedHashMap<>();
-        sources.forEach((name, source) -> factories.put(name, buildLettuceFactory(source)));
-        return new MultiRedisConnectionFactory(
-                factories,
-                properties.getPrimary(),
-                properties.isStrict(),
-                routeStrategy);
+        try {
+            sources.forEach((name, source) -> factories.put(name, buildLettuceFactory(source)));
+            return new MultiRedisConnectionFactory(
+                    factories,
+                    properties.getPrimary(),
+                    properties.isStrict(),
+                    routeStrategy);
+        } catch (RuntimeException exception) {
+            destroyFactories(factories, exception);
+            throw exception;
+        }
     }
 
     /**
@@ -142,39 +153,97 @@ public class RedisPlusDataSourceAutoConfiguration {
      * 根据单个数据源属性构建 {@link LettuceConnectionFactory}。
      * 调用 {@code afterPropertiesSet()} 完成连接工厂初始化（等同于 Spring 容器生命周期回调）。
      */
-    private LettuceConnectionFactory buildLettuceFactory(RedisPlusDataSourceProperties.RedisSourceProperties src) {
+    private static LettuceConnectionFactory buildLettuceFactory(
+            RedisPlusDataSourceProperties.RedisSourceProperties src) {
+        validateSourceConfiguration(src);
         RedisStandaloneConfiguration standaloneConfig = new RedisStandaloneConfiguration();
         standaloneConfig.setHostName(src.getHost());
         standaloneConfig.setPort(src.getPort());
         standaloneConfig.setDatabase(src.getDatabase());
+        if (src.getUsername() != null && !src.getUsername().isEmpty()) {
+            standaloneConfig.setUsername(src.getUsername());
+        }
         if (src.getPassword() != null && !src.getPassword().isBlank()) {
             standaloneConfig.setPassword(RedisPassword.of(src.getPassword()));
         }
 
-        LettuceConnectionFactory factory;
         RedisPlusDataSourceProperties.PoolProperties pool = src.getPool();
-
-        if (pool.isEnabled()) {
-            GenericObjectPoolConfig<io.lettuce.core.api.StatefulConnection<?, ?>> poolConfig =
-                    new GenericObjectPoolConfig<>();
-            poolConfig.setMaxTotal(pool.getMaxActive());
-            poolConfig.setMaxIdle(pool.getMaxIdle());
-            poolConfig.setMinIdle(pool.getMinIdle());
-            poolConfig.setMaxWait(pool.getMaxWait());
-
-            LettucePoolingClientConfiguration clientConfig = LettucePoolingClientConfiguration.builder()
-                    .commandTimeout(src.getTimeout())
-                    .poolConfig(poolConfig)
-                    .build();
-            factory = new LettuceConnectionFactory(standaloneConfig, clientConfig);
-        } else {
-            LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-                    .commandTimeout(src.getTimeout())
-                    .build();
-            factory = new LettuceConnectionFactory(standaloneConfig, clientConfig);
+        LettuceClientConfiguration.LettuceClientConfigurationBuilder clientBuilder = pool.isEnabled()
+                ? pooledClientConfiguration(pool)
+                : LettuceClientConfiguration.builder();
+        configureClientConfiguration(src, clientBuilder);
+        LettuceConnectionFactory factory = new LettuceConnectionFactory(standaloneConfig, clientBuilder.build());
+        try {
+            factory.afterPropertiesSet();
+            return factory;
+        } catch (RuntimeException failure) {
+            try {
+                factory.destroy();
+            } catch (RuntimeException destroyFailure) {
+                failure.addSuppressed(destroyFailure);
+            }
+            throw failure;
         }
+    }
 
-        factory.afterPropertiesSet();
-        return factory;
+    private static void validateSourceConfiguration(RedisPlusDataSourceProperties.RedisSourceProperties source) {
+        if (!source.isTimeoutConfigurationValid()) {
+            throw new IllegalArgumentException("Redis 命令和连接超时必须大于 0，关闭超时不能为负数");
+        }
+        RedisPlusDataSourceProperties.SslProperties ssl = source.getSsl();
+        if (ssl == null) {
+            throw new IllegalArgumentException("Redis TLS 配置不能为空");
+        }
+        RedisPlusDataSourceProperties.PoolProperties pool = source.getPool();
+        if (pool == null || !pool.isPoolConfigurationValid()) {
+            throw new IllegalArgumentException(
+                    "Redis 连接池必须满足 0 <= minIdle <= maxIdle <= maxActive，且最大等待时间不能为空");
+        }
+    }
+
+    private static LettucePoolingClientConfiguration.LettucePoolingClientConfigurationBuilder
+    pooledClientConfiguration(RedisPlusDataSourceProperties.PoolProperties pool) {
+        GenericObjectPoolConfig<StatefulConnection<?, ?>> poolConfig = new GenericObjectPoolConfig<>();
+        poolConfig.setMaxTotal(pool.getMaxActive());
+        poolConfig.setMaxIdle(pool.getMaxIdle());
+        poolConfig.setMinIdle(pool.getMinIdle());
+        poolConfig.setMaxWait(pool.getMaxWait());
+        return LettucePoolingClientConfiguration.builder().poolConfig(poolConfig);
+    }
+
+    private static void configureClientConfiguration(
+            RedisPlusDataSourceProperties.RedisSourceProperties source,
+            LettuceClientConfiguration.LettuceClientConfigurationBuilder clientBuilder) {
+        Duration quietPeriod = LettuceClientConfiguration.defaultConfiguration().getShutdownQuietPeriod();
+        clientBuilder.commandTimeout(source.getTimeout())
+                .shutdownTimeout(source.getShutdownTimeout())
+                .shutdownQuietPeriod(quietPeriod.compareTo(source.getShutdownTimeout()) > 0
+                        ? source.getShutdownTimeout() : quietPeriod)
+                .clientOptions(ClientOptions.builder()
+                        .timeoutOptions(TimeoutOptions.enabled())
+                        .socketOptions(SocketOptions.builder()
+                                .connectTimeout(source.getConnectTimeout())
+                                .build())
+                        .build());
+        if (source.getClientName() != null && !source.getClientName().isEmpty()) {
+            clientBuilder.clientName(source.getClientName());
+        }
+        RedisPlusDataSourceProperties.SslProperties ssl = source.getSsl();
+        if (ssl.isEnabled()) {
+            LettuceClientConfiguration.LettuceSslClientConfigurationBuilder sslBuilder = clientBuilder.useSsl();
+            sslBuilder.verifyPeer(SslVerifyMode.FULL);
+        }
+    }
+
+    private static void destroyFactories(Map<String, RedisConnectionFactory> factories, RuntimeException failure) {
+        factories.values().forEach(factory -> {
+            if (factory instanceof LettuceConnectionFactory lettuceFactory) {
+                try {
+                    lettuceFactory.destroy();
+                } catch (RuntimeException destroyFailure) {
+                    failure.addSuppressed(destroyFailure);
+                }
+            }
+        });
     }
 }
