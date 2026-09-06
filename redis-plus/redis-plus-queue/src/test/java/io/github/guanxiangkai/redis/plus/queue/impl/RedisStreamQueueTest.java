@@ -16,6 +16,8 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.RecordId;
+import org.springframework.data.redis.connection.stream.StreamOffset;
+import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -154,7 +156,7 @@ class RedisStreamQueueTest {
         RecordId recordId = RecordId.of("5-0");
         when(serializer.deserialize("payload-json", String.class)).thenReturn("payload");
         when(streamOps.read(any(org.springframework.data.redis.connection.stream.Consumer.class),
-                any(StreamReadOptions.class), any(StreamOffset[].class)))
+                any(StreamReadOptions.class), anyStreamOffsets()))
                 .thenReturn(List.of(record(recordId)));
         when(streamOps.acknowledge("stream:orders", "group-a", recordId))
                 .thenThrow(new IllegalStateException("temporary Redis failure"))
@@ -177,7 +179,7 @@ class RedisStreamQueueTest {
         RecordId recordId = RecordId.of("6-0");
         when(serializer.deserialize("payload-json", String.class)).thenReturn("payload");
         when(streamOps.read(any(org.springframework.data.redis.connection.stream.Consumer.class),
-                any(StreamReadOptions.class), any(StreamOffset[].class)))
+                any(StreamReadOptions.class), anyStreamOffsets()))
                 .thenReturn(List.of(record(recordId)));
         CountDownLatch ackStarted = new CountDownLatch(1);
         CountDownLatch allowAck = new CountDownLatch(1);
@@ -249,6 +251,11 @@ class RedisStreamQueueTest {
     private static MapRecord<String, Object, Object> record(RecordId recordId) {
         return MapRecord.create("stream:orders", Map.<Object, Object>of("payload", "payload-json"))
                 .withId(recordId);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static StreamOffset<String>[] anyStreamOffsets() {
+        return any(StreamOffset[].class);
     }
 
     @SuppressWarnings("unchecked")
