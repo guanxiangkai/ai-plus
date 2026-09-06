@@ -12,6 +12,7 @@ import org.springframework.data.redis.connection.lettuce.LettucePoolingClientCon
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,10 +45,10 @@ class RedisPlusDataSourceAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     LettuceConnectionFactory factory = configuredFactory(context);
-                    RedisPlusDataSourceProperties.RedisSourceProperties source = context
+                    RedisPlusDataSourceProperties.RedisSourceProperties source = Objects.requireNonNull(context
                             .getBean(RedisPlusDataSourceProperties.class)
                             .getSources()
-                            .get("primary");
+                            .get("primary"), "主数据源必须已完成配置绑定");
 
                     assertThat(source.getUsername()).isEqualTo(" application ");
                     assertThat(source.getClientName()).isEqualTo(" orders-api ");
