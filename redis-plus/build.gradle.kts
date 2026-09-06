@@ -1,6 +1,7 @@
 import net.ltgt.gradle.errorprone.CheckSeverity
 import net.ltgt.gradle.errorprone.errorprone
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
+import io.freefair.gradle.plugins.lombok.LombokExtension
 import java.util.Properties
 
 /**
@@ -28,11 +29,17 @@ allprojects {
 
 // ── 在 subprojects{} 中无法直接访问 libs，提前提取引用 ──
 val lombokPlugin: Provider<PluginDependency> = libs.plugins.lombok
+val lombokVersion = libs.versions.lombok.asProvider()
 val springBootDependencies: Provider<MinimalExternalModuleDependency> = libs.spring.boot.dependencies
 val slf4jApi: Provider<MinimalExternalModuleDependency> = libs.slf4j.api
 val testingBundle: Provider<ExternalModuleDependencyBundle> = libs.bundles.testing
 val errorProneCore: Provider<MinimalExternalModuleDependency> = libs.errorprone.core
 val nullAway: Provider<MinimalExternalModuleDependency> = libs.nullaway
+
+// 统一全部 SourceSet 与 delombok，避免编译器和文档生成器使用不同的 Lombok。
+configure<LombokExtension> {
+    version.set(lombokVersion)
+}
 
 // ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
 // ║                                   子模块公共配置                                                   ║
@@ -47,6 +54,10 @@ subprojects {
         plugin("com.vanniktech.maven.publish.base")
         plugin(lombokPlugin.get().pluginId)
         plugin("net.ltgt.errorprone")
+    }
+
+    configure<LombokExtension> {
+        version.set(lombokVersion)
     }
 
     configure<JavaPluginExtension> {

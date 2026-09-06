@@ -9,5 +9,5 @@ dependencies {
     api(projects.jpaPlusCore)
     api(libs.bundles.query.public.api)           // QueryExecutor.page(..., Pageable) / EntityManager
     implementation(libs.hibernate.core)          // FlushStrategy 内部使用 Session.isDirty()
+    implementation(libs.caffeine)                // 映射计划缓存容量和原子加载由 Caffeine 管理
 }
-

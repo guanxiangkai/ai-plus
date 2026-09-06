@@ -258,10 +258,13 @@ redis-plus:
 - **队列 API**：List 工厂返回 `SimpleQueue`，Stream 工厂返回 `AckQueue`；
   只有 `AckQueue` 暴露 `reclaimPending(...)`，避免 List 队列继承无意义的 ACK/Pending 语义
 - **订阅模型**：`MessageQueue#subscribe(...)` 返回 `QueueSubscription`，由统一异步执行器托管，停止语义可控。
+  执行器拒绝任务提交时会恢复未运行状态并传播异常，调用方处理执行器问题后可以重新订阅。
 - **同步拉取语义**：`MessageQueue#receive(...)` 返回 `QueueDelivery`；
   可通过 `QueueDelivery#mode()` 判断交付模式：
   `ALREADY_DEQUEUED`（List，消息已出队，ack 为 no-op）和
   `PENDING_ACKNOWLEDGMENT`（Stream，需显式 `acknowledge()` 才会真正 XACK）
+  Stream 交付仅在 ACK 调用成功返回后标记已确认；失败时保持未确认并允许重试。同一交付上的并发
+  确认串行执行，成功后重复调用不再发送 ACK；该保证不等于业务处理的 exactly-once。
 - **重试执行**：默认队列运行时通过统一异步执行器调度重试，不阻塞消费线程。
 - **幂等 FAILED 重试**：并发请求通过 Redis CAS 竞争状态切换；只有获胜请求进入 `PROCESSING` 并执行业务，其余请求获得处理中结果。
 - **运行时观测**：lock、ratelimit、idempotent 等路径使用 `RedisPlusObserver`；cache、governance 通过 `RedisPlusMetrics` 暴露指标。

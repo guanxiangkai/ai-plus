@@ -2,6 +2,7 @@ import org.gradle.api.file.FileCollection
 import org.gradle.api.tasks.Classpath
 import org.gradle.process.CommandLineArgumentProvider
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
+import io.freefair.gradle.plugins.lombok.LombokExtension
 import java.util.Properties
 
 /**
@@ -52,16 +53,15 @@ allprojects {
 
 // ── 在 subprojects{} 中无法直接访问 libs，提前提取引用 ──
 val lombokPlugin: Provider<PluginDependency> = libs.plugins.lombok
-val lombokDependency: Provider<MinimalExternalModuleDependency> = libs.lombok
+val lombokVersion = libs.versions.lombok.asProvider()
 val springBootDependencies: Provider<MinimalExternalModuleDependency> = libs.spring.boot.dependencies
 val slf4jApi: Provider<MinimalExternalModuleDependency> = libs.slf4j.api
 val mockitoCore: Provider<MinimalExternalModuleDependency> = libs.mockito.core
 val testingBundle: Provider<ExternalModuleDependencyBundle> = libs.bundles.testing
 
-dependencies {
-    compileOnly(lombokDependency)
-    annotationProcessor(lombokDependency)
-    "lombok"(lombokDependency)
+// FreeFair 为各 SourceSet 连接编译、注解处理器和 delombok 的依赖，版本仅从目录读取。
+configure<LombokExtension> {
+    version.set(lombokVersion)
 }
 
 // ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -76,6 +76,10 @@ subprojects {
         plugin("java-library")
         plugin("com.vanniktech.maven.publish.base")
         plugin(lombokPlugin.get().pluginId)
+    }
+
+    configure<LombokExtension> {
+        version.set(lombokVersion)
     }
 
     val mockitoAgent = configurations.create("mockitoAgent")
@@ -116,9 +120,6 @@ subprojects {
     dependencies {
         "implementation"(platform(springBootDependencies.get()))
         "implementation"(slf4jApi)
-        "compileOnly"(lombokDependency)
-        "annotationProcessor"(lombokDependency)
-        "lombok"(lombokDependency)
         testImplementation(testingBundle)
         testImplementation(mockitoCore)
         mockitoAgent(platform(springBootDependencies.get()))

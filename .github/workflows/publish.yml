@@ -8,9 +8,6 @@ on:
         required: true
         default: all
         type: string
-  push:
-    tags:
-      - "v*"
 
 permissions:
   contents: read
@@ -34,27 +31,13 @@ jobs:
       - name: 校验发布来源
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-              echo "手工发布只能从 main 分支执行" >&2
-              exit 1
-            fi
-            exit 0
-          fi
-
-          if [[ "$GITHUB_REF" != refs/tags/v* ]]; then
-            echo "标签发布仅接受 v* 标签" >&2
-            exit 1
-          fi
-
-          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
-            echo "发布标签必须指向 main 分支历史" >&2
+          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" || "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "发布必须手工选择 main 分支和目标模块" >&2
             exit 1
           fi
 
       - name: 配置 JDK 25
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: graalvm
           java-version: "25.0.4"
@@ -63,11 +46,14 @@ jobs:
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
       - name: 执行完整质量门禁
-        run: ./gradlew buildAll --no-daemon --stacktrace
+        run: ./gradlew buildAll generatePomAll --no-daemon --stacktrace
+
+      - name: 核验发布元数据与回归测试报告
+        run: python3 .github/scripts/verify-build.py
 
       - name: 发布所选模块
         env:
-          RELEASE_MODULES: ${{ inputs.modules || 'all' }}
+          RELEASE_MODULES: ${{ inputs.modules }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_SIGNING_KEY }}

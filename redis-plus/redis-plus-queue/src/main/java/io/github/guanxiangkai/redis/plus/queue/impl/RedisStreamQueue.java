@@ -189,47 +189,58 @@ public class RedisStreamQueue<T> implements AckQueue<T> {
         return toDelivery(records.get(0));
     }
 
+    /**
+     * 提交 Stream 消费任务；任务提交失败时恢复未运行状态，以允许调用方修正执行器后重新订阅。
+     *
+     * @param consumer 消息消费者
+     * @return 可停止并查询运行状态的订阅句柄
+     */
     @Override
     public QueueSubscription subscribe(Consumer<T> consumer) {
         if (!running.compareAndSet(false, true)) {
             log.warn("[redis-plus] Stream 队列 {} 已有消费者在运行", queueName);
             return subscription();
         }
-        asyncExecutor.execute("queue-stream-" + queueName, () -> {
-            log.info("[redis-plus] Stream 队列消费者启动：group={}, consumer={}, stream={}",
-                    consumerGroup, consumerName, streamKey);
-            if (reclaimOnStart) {
-                long reclaimed = reclaimPending(pendingReclaimIdleTime, consumer);
-                if (reclaimed > 0) {
-                    log.info("[redis-plus] 启动时回收 PEL 悬挂消息：queue={}, count={}", queueName, reclaimed);
+        try {
+            asyncExecutor.execute("queue-stream-" + queueName, () -> {
+                log.info("[redis-plus] Stream 队列消费者启动：group={}, consumer={}, stream={}",
+                        consumerGroup, consumerName, streamKey);
+                if (reclaimOnStart) {
+                    long reclaimed = reclaimPending(pendingReclaimIdleTime, consumer);
+                    if (reclaimed > 0) {
+                        log.info("[redis-plus] 启动时回收 PEL 悬挂消息：queue={}, count={}", queueName, reclaimed);
+                    }
                 }
-            }
-            int consecutiveReadFailures = 0;
-            while (running.get()) {
-                try {
-                    List<MapRecord<String, Object, Object>> records = redisTemplate.opsForStream().read(
-                            org.springframework.data.redis.connection.stream.Consumer.from(consumerGroup, consumerName),
-                            StreamReadOptions.empty().count(batchSize).block(pollTimeout),
-                            streamOffset(ReadOffset.lastConsumed()));
-                    consecutiveReadFailures = 0;
+                int consecutiveReadFailures = 0;
+                while (running.get()) {
+                    try {
+                        List<MapRecord<String, Object, Object>> records = redisTemplate.opsForStream().read(
+                                org.springframework.data.redis.connection.stream.Consumer.from(consumerGroup, consumerName),
+                                StreamReadOptions.empty().count(batchSize).block(pollTimeout),
+                                streamOffset(ReadOffset.lastConsumed()));
+                        consecutiveReadFailures = 0;
 
-                    if (records != null && !records.isEmpty()) {
-                        for (MapRecord<String, Object, Object> record : records) {
-                            processRecord(record, consumer);
+                        if (records != null && !records.isEmpty()) {
+                            for (MapRecord<String, Object, Object> record : records) {
+                                processRecord(record, consumer);
+                            }
+                        }
+                    } catch (Exception e) {
+                        consecutiveReadFailures++;
+                        Duration backoff = readFailurePolicy.delayFor(consecutiveReadFailures);
+                        log.error("[redis-plus] Stream 读取失败，stream={}, consecutiveFailures={}, backoff={}",
+                                streamKey, consecutiveReadFailures, backoff, e);
+                        if (!pauseAfterReadFailure(backoff)) {
+                            break;
                         }
                     }
-                } catch (Exception e) {
-                    consecutiveReadFailures++;
-                    Duration backoff = readFailurePolicy.delayFor(consecutiveReadFailures);
-                    log.error("[redis-plus] Stream 读取失败，stream={}, consecutiveFailures={}, backoff={}",
-                            streamKey, consecutiveReadFailures, backoff, e);
-                    if (!pauseAfterReadFailure(backoff)) {
-                        break;
-                    }
                 }
-            }
-            log.info("[redis-plus] Stream 队列消费者停止：{}", queueName);
-        });
+                log.info("[redis-plus] Stream 队列消费者停止：{}", queueName);
+            });
+        } catch (RuntimeException e) {
+            running.set(false);
+            throw e;
+        }
         return subscription();
     }
 
@@ -596,11 +607,16 @@ public class RedisStreamQueue<T> implements AckQueue<T> {
             return DeliveryMode.PENDING_ACKNOWLEDGMENT;
         }
 
+        /**
+         * 串行确认本次交付；仅在 Redis 调用成功返回后更新状态，异常时允许重试。
+         */
         @Override
-        public void acknowledge() {
-            if (acknowledged.compareAndSet(false, true)) {
-                RedisStreamQueue.this.acknowledge(recordId);
+        public synchronized void acknowledge() {
+            if (acknowledged.get()) {
+                return;
             }
+            RedisStreamQueue.this.acknowledge(recordId);
+            acknowledged.set(true);
         }
 
         @Override

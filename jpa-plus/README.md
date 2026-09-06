@@ -55,7 +55,8 @@
 - **审计事件异步模式**：基于虚拟线程，支持自定义 `AuditEventErrorHandler`
 - **分片事务边界控制**：`REJECT / BEST_EFFORT / SEATA`
 - **GROUP BY / HAVING 聚合查询**：`groupBy()` + `having(AggregateCondition)`
-- **Keyset 深分页**：`pageKeyset()` + `KeysetCursor`，性能与页码无关
+- **Keyset 深分页**：`pageKeyset()` + `KeysetCursor`，按排序游标查询，避免随页码增长的 OFFSET 扫描
+- **结果映射计划**：`ClassValue` 隔离目标类型，Caffeine 为每个类型缓存最多 256 个有序投影；引用字段的 SQL `NULL` 覆盖初始值，基本类型保留构造器初始化值
 - **方法级 `@DataScope`**：Repository 方法注解优先于实体类注解
 - **租户列名可配置**：`TenantIdProvider` SPI + `jpa-plus.tenant.column`（注册 Bean 即自动生效）
 - **`@ShardingQuery` 分片读路由**：注解声明分片键表达式，自动路由查询
@@ -365,6 +366,10 @@ var results = queryExecutor.list(
 ```
 
 ### Keyset 深分页（高性能翻页）
+
+排序字段必须非空、形成稳定且唯一的顺序，并出现在返回类型中。游标通过统一字段访问器读取私有及继承字段；
+字段缺失、值为 `null` 或不可访问时显式报错，避免返回不完整游标。当前游标比较不支持可空排序列，
+使用前应在查询条件或数据约束中排除排序值为 SQL `NULL` 的记录。
 
 ```java
 // 首页

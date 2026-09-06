@@ -1,5 +1,6 @@
 import java.util.Properties
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
+import io.freefair.gradle.plugins.lombok.LombokExtension
 
 plugins {
     java
@@ -34,17 +35,16 @@ allprojects {
 }
 
 val lombokPlugin: Provider<PluginDependency> = libs.plugins.lombok
-val lombokDependency: Provider<MinimalExternalModuleDependency> = libs.lombok
+val lombokVersion = libs.versions.lombok.asProvider()
 val springBootDependencies: Provider<MinimalExternalModuleDependency> = libs.spring.boot.dependencies
 val springCloudDependencies: Provider<MinimalExternalModuleDependency> = libs.spring.cloud.dependencies
 val slf4jApi: Provider<MinimalExternalModuleDependency> = libs.slf4j.api
 val testingBundle: Provider<ExternalModuleDependencyBundle> = libs.bundles.testing
 val configurationProcessor: Provider<MinimalExternalModuleDependency> = libs.spring.boot.configuration.processor
 
-dependencies {
-    compileOnly(lombokDependency)
-    annotationProcessor(lombokDependency)
-    "lombok"(lombokDependency)
+// FreeFair 统一管理编译、测试与 delombok 的注解处理器，避免每个配置重复声明。
+configure<LombokExtension> {
+    version.set(lombokVersion)
 }
 
 subprojects {
@@ -56,6 +56,10 @@ subprojects {
         plugin("java-library")
         plugin("com.vanniktech.maven.publish.base")
         plugin(lombokPlugin.get().pluginId)
+    }
+
+    configure<LombokExtension> {
+        version.set(lombokVersion)
     }
 
     configure<JavaPluginExtension> {
@@ -102,10 +106,7 @@ subprojects {
         "compileOnly"(platform(springCloudDependencies.get()))
         "annotationProcessor"(platform(springBootDependencies.get()))
         "implementation"(slf4jApi)
-        "compileOnly"(lombokDependency)
-        "annotationProcessor"(lombokDependency)
         "annotationProcessor"(configurationProcessor)
-        "lombok"(lombokDependency)
         testImplementation(testingBundle)
     }
 

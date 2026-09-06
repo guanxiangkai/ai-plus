@@ -46,9 +46,40 @@ class MappingPlanCompilerTest {
         assertThat(row.age).isEqualTo(30);
     }
 
+    @Test
+    void apply_clearsReferenceFieldsForSqlNullAndKeepsPrimitiveInitialValues() throws Exception {
+        TableMeta table = TableMeta.of(DefaultedRow.class);
+        List<SelectColumn> columns = List.of(
+                new SelectColumn(ColumnMeta.of(table, "name", String.class)),
+                new SelectColumn(ColumnMeta.of(table, "age", int.class))
+        );
+        MappingPlan<DefaultedRow> plan = MappingPlanCompiler.compile(DefaultedRow.class, columns);
+        ResultSet resultSet = mock(ResultSet.class);
+        when(resultSet.getObject(1, String.class)).thenReturn(null);
+        when(resultSet.getObject(2, int.class)).thenReturn(null);
+
+        DefaultedRow row = plan.apply(resultSet);
+
+        assertThat(row.name).isNull();
+        assertThat(row.age).isEqualTo(99);
+    }
+
     public static class UserRow {
         private String name;
         private int age;
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public void setAge(int age) {
+            this.age = age;
+        }
+    }
+
+    public static class DefaultedRow {
+        private String name = "initial value";
+        private int age = 99;
 
         public void setName(String name) {
             this.name = name;
