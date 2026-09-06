@@ -58,8 +58,10 @@ public final class TenantForwardingExchangeFilterFunction implements ExchangeFil
                 throw new IllegalArgumentException("租户请求头必须只有一个值");
             }
             String explicitTenantId = request.headers().getFirst(AuthConstants.HeaderConstants.TENANT_ID);
-            if (StringUtils.hasText(explicitTenantId)) {
+            if (explicitTenantId != null) {
                 validateTenantId(explicitTenantId);
+            }
+            if (StringUtils.hasText(explicitTenantId)) {
                 return next.exchange(request);
             }
             return currentUserProvider.getCurrentUserMono()
@@ -75,14 +77,14 @@ public final class TenantForwardingExchangeFilterFunction implements ExchangeFil
     }
 
     private ClientRequest withTenantHeader(ClientRequest request, Optional<CurrentUser> currentUser) {
-        String tenantId = currentUser.map(CurrentUser::tenantId).filter(StringUtils::hasText).orElse(null);
+        String tenantId = currentUser.map(CurrentUser::tenantId).orElse(null);
         if (tenantId != null) {
             validateTenantId(tenantId);
         }
         return ClientRequest.from(request)
                 .headers(headers -> {
                     headers.remove(AuthConstants.HeaderConstants.TENANT_ID);
-                    if (tenantId != null) {
+                    if (StringUtils.hasText(tenantId)) {
                         headers.set(AuthConstants.HeaderConstants.TENANT_ID, tenantId);
                     }
                 })

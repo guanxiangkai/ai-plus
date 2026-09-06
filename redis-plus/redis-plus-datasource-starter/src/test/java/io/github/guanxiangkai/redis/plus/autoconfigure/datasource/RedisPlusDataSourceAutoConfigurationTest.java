@@ -1,14 +1,17 @@
 package io.github.guanxiangkai.redis.plus.autoconfigure.datasource;
 
+import io.github.guanxiangkai.redis.plus.autoconfigure.properties.RedisPlusDataSourceProperties;
 import io.github.guanxiangkai.redis.plus.datasource.MultiRedisConnectionFactory;
 import io.lettuce.core.SslVerifyMode;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.core.env.MapPropertySource;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 
 import java.time.Duration;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,9 +28,7 @@ class RedisPlusDataSourceAutoConfigurationTest {
     void pooledSource_appliesConnectionAndAclConfiguration() {
         contextRunner
                 .withPropertyValues(
-                        "redis-plus.datasource.sources.primary.username= application ",
                         "redis-plus.datasource.sources.primary.password=secret",
-                        "redis-plus.datasource.sources.primary.client-name= orders-api ",
                         "redis-plus.datasource.sources.primary.timeout=4s",
                         "redis-plus.datasource.sources.primary.connect-timeout=2s",
                         "redis-plus.datasource.sources.primary.shutdown-timeout=500ms",
@@ -35,10 +36,21 @@ class RedisPlusDataSourceAutoConfigurationTest {
                         "redis-plus.datasource.sources.primary.pool.max-idle=8",
                         "redis-plus.datasource.sources.primary.pool.min-idle=2",
                         "redis-plus.datasource.sources.primary.pool.max-wait=1s")
+                // 字符串形式的 TestPropertyValues 会 trim 值，原始属性源用于验证空白保留契约。
+                .withInitializer(context -> context.getEnvironment().getPropertySources().addFirst(
+                        new MapPropertySource("preserved-acl-properties", Map.of(
+                                "redis-plus.datasource.sources.primary.username", " application ",
+                                "redis-plus.datasource.sources.primary.client-name", " orders-api "))))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     LettuceConnectionFactory factory = configuredFactory(context);
+                    RedisPlusDataSourceProperties.RedisSourceProperties source = context
+                            .getBean(RedisPlusDataSourceProperties.class)
+                            .getSources()
+                            .get("primary");
 
+                    assertThat(source.getUsername()).isEqualTo(" application ");
+                    assertThat(source.getClientName()).isEqualTo(" orders-api ");
                     assertThat(factory.getStandaloneConfiguration().getUsername()).isEqualTo(" application ");
                     assertThat(factory.getStandaloneConfiguration().getPassword()
                             .map(characters -> new String(characters))).contains("secret");

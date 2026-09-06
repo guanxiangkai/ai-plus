@@ -61,7 +61,7 @@ class TenantForwardingExchangeFilterFunctionTest {
                 .expectNextCount(1)
                 .verifyComplete();
 
-        assertThat(captured.get().headers()).doesNotContainKey(AuthConstants.HeaderConstants.TENANT_ID);
+        assertThat(captured.get().headers().containsHeader(AuthConstants.HeaderConstants.TENANT_ID)).isFalse();
         assertThat(provider.calls()).isZero();
     }
 
@@ -94,7 +94,7 @@ class TenantForwardingExchangeFilterFunctionTest {
                     }))
                     .expectNextCount(1)
                     .verifyComplete();
-            assertThat(captured.get().headers()).doesNotContainKey(AuthConstants.HeaderConstants.TENANT_ID);
+            assertThat(captured.get().headers().containsHeader(AuthConstants.HeaderConstants.TENANT_ID)).isFalse();
         }
         assertThat(provider.calls()).isZero();
     }
@@ -118,6 +118,40 @@ class TenantForwardingExchangeFilterFunctionTest {
     }
 
     @Test
+    void rejectsControlOnlyExplicitTenantBeforeReadingProviderOrSending() {
+        CountingProvider provider = new CountingProvider(Mono.just(Optional.of(user("tenant-a"))));
+        TenantForwardingExchangeFilterFunction filter = filter(provider, "https://orders.example.test");
+        AtomicInteger sends = new AtomicInteger();
+        for (String tenantId : List.of("\t", "\r\n", " \t ")) {
+            StepVerifier.create(filter.filter(request("https://orders.example.test/orders", tenantId), forwarded -> {
+                        sends.incrementAndGet();
+                        return success();
+                    }))
+                    .expectError(IllegalArgumentException.class)
+                    .verify();
+        }
+        assertThat(provider.calls()).isZero();
+        assertThat(sends.get()).isZero();
+    }
+
+    @Test
+    void rejectsControlOnlyProviderTenantBeforeSending() {
+        AtomicInteger sends = new AtomicInteger();
+        for (String tenantId : List.of("\t", "\r\n", " \t ")) {
+            CountingProvider provider = new CountingProvider(Mono.just(Optional.of(user(tenantId))));
+            TenantForwardingExchangeFilterFunction filter = filter(provider, "https://orders.example.test");
+            StepVerifier.create(filter.filter(request("https://orders.example.test/orders", null), forwarded -> {
+                        sends.incrementAndGet();
+                        return success();
+                    }))
+                    .expectError(IllegalArgumentException.class)
+                    .verify();
+            assertThat(provider.calls()).isEqualTo(1);
+        }
+        assertThat(sends.get()).isZero();
+    }
+
+    @Test
     void removesBlankTenantHeaderWhenCurrentUserHasNoTenant() {
         CountingProvider provider = new CountingProvider(Mono.just(Optional.of(user(null))));
         TenantForwardingExchangeFilterFunction filter = filter(provider, "https://orders.example.test");
@@ -130,7 +164,7 @@ class TenantForwardingExchangeFilterFunctionTest {
                 .expectNextCount(1)
                 .verifyComplete();
 
-        assertThat(captured.get().headers()).doesNotContainKey(AuthConstants.HeaderConstants.TENANT_ID);
+        assertThat(captured.get().headers().containsHeader(AuthConstants.HeaderConstants.TENANT_ID)).isFalse();
     }
 
     @Test
