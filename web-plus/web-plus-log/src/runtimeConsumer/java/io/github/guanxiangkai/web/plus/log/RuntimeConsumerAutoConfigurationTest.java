@@ -6,6 +6,7 @@ import io.github.guanxiangkai.web.plus.log.autoconfigure.WebPlusLogAutoConfigura
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
+import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -14,6 +15,7 @@ class RuntimeConsumerAutoConfigurationTest {
 
     private final ReactiveWebApplicationContextRunner contextRunner = new ReactiveWebApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(WebPlusLogAutoConfiguration.class))
+            .withBean(ObjectMapper.class, ObjectMapper::new)
             .withBean(ClientIpResolver.class, () -> request -> "127.0.0.1");
 
     @Test
