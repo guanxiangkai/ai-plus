@@ -26,6 +26,11 @@ testing {
                 implementation(libs.spring.boot.starter.webflux)
                 implementation(libs.spring.boot.starter.test)
             }
+            targets.configureEach {
+                testTask.configure {
+                    testLogging.exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                }
+            }
         }
     }
 }
