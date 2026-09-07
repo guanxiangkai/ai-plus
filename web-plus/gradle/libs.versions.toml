@@ -132,8 +132,11 @@ error-compileOnly = ["spring-boot-autoconfigure", "spring-context", "spring-web"
 # security 自动配置编译期依赖：安全注解、过滤器、AOP 和 Reactor 上下文
 auth-compileOnly = ["spring-boot-autoconfigure", "spring-context", "spring-web", "spring-security-core", "spring-security-web", "spring-security-config", "jackson-databind", "micrometer-context-propagation", "spring-aop", "aspectjweaver", "reactor-core", "jakarta-annotation-api"]
 
-# log 模块编译期依赖：日志切面、SpEL、审计桥接和 Redis Plus 队列能力
-log-compileOnly = ["spring-boot-autoconfigure", "spring-boot-webclient", "spring-context", "spring-expression", "spring-web", "spring-tx", "spring-aop", "aspectjweaver", "reactor-core", "micrometer-context-propagation"]
+# log 模块运行时依赖：自动配置创建的日志切面直接引用 AOP 与 AspectJ 类型，必须发布给消费方。
+log-runtime = ["spring-aop", "aspectjweaver"]
+
+# log 模块编译期可选依赖：审计桥接和 Redis Plus 队列能力由消费方按需提供。
+log-compileOnly = ["spring-boot-autoconfigure", "spring-boot-webclient", "spring-context", "spring-expression", "spring-web", "spring-tx", "reactor-core", "micrometer-context-propagation"]
 
 # dict 模块编译期与测试依赖：Spring Data Redis 和 Reactor 类型
 dict-compileOnly = ["spring-data-redis", "spring-boot-autoconfigure", "spring-context", "reactor-core"]
