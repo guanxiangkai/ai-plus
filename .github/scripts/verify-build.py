@@ -78,6 +78,7 @@ for module, version in versions.items():
 
 # 检查对应源码的真实 JUnit 报告，防止构建成功但关键回归用例未被发现。
 required_suites = {
+    "io.github.guanxiangkai.web.plus.security.password.ProtocolPasswordEncoderTest",
     "io.github.guanxiangkai.jpa.plus.query.executor.KeysetCursorExtractorTest",
     "io.github.guanxiangkai.jpa.plus.query.plan.MappingPlanCacheTest",
     "io.github.guanxiangkai.jpa.plus.query.plan.MappingPlanCompilerTest",
