@@ -94,6 +94,18 @@ web-plus-log = { group = "io.github.guanxiangkai", name = "web-plus-log", versio
 `spring-boot-starter-opentelemetry`。OTLP 导出地址、采样率和启用开关属于部署配置，
 不得硬编码在公共框架中。
 
+## 密码输入与编码
+
+接口继续使用 `password`、`oldPassword` 和 `newPassword` 字段；字段名称不决定密码值的处理方式。
+已约定客户端提交 SHA-1 小写十六进制摘要的应用，可显式注册
+`io.github.guanxiangkai.web.plus.security.password.ProtocolPasswordEncoder`，并通过
+`PasswordProtocol.PASSWORD_PATTERN` 与 `PasswordProtocol.requirePassword` 校验输入。
+实际存储和匹配委托 Spring Security BCrypt，不执行二次摘要，不增加存储格式前缀。
+
+此能力不自动启用，也不改变默认 `BCryptPasswordEncoder`。使用原始密码的应用维持自身协议，
+不能仅根据字段名称或现有 BCrypt 格式判断其输入类型。摘要属于密码等效凭据，仍须使用 HTTPS，
+密码字段应标记为只写并从日志中排除；本能力不执行存量账号迁移或密码重置。
+
 ## 客户端 IP 恢复
 
 `web-plus-core` 默认只使用 TCP 连接对端地址，绝不因地址位于内网自动信任
