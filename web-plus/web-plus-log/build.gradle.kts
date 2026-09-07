@@ -1,6 +1,9 @@
+import org.gradle.api.plugins.jvm.JvmTestSuite
+
 dependencies {
     api(projects.webPlusCore)
     api(libs.micrometer.tracing)
+    implementation(libs.bundles.log.runtime)
     compileOnly(libs.bundles.log.compileOnly)
     compileOnly(plusModule("jpa-plus-core"))
     compileOnly(plusModule("jpa-plus-audit"))
@@ -12,4 +15,21 @@ dependencies {
     testImplementation(libs.spring.boot.starter.webflux)
     testImplementation(libs.spring.boot.webclient)
     annotationProcessor(libs.spring.boot.configuration.processor)
+}
+
+testing {
+    suites {
+        val runtimeConsumer by registering(JvmTestSuite::class) {
+            useJUnitJupiter()
+            dependencies {
+                implementation(project())
+                implementation(libs.spring.boot.starter.webflux)
+                implementation(libs.spring.boot.starter.test)
+            }
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(testing.suites.named("runtimeConsumer"))
 }

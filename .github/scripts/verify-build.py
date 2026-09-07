@@ -74,10 +74,19 @@ for module, version in versions.items():
         verify(len(caffeine) == 1, "查询模块必须声明唯一 Caffeine 依赖")
         verify(caffeine[0].findtext("m:scope", namespaces=namespace) == "runtime",
                "Caffeine 必须作为实现依赖发布")
+    if module == "web-plus-log":
+        for dependency_group, artifact in (("org.springframework", "spring-aop"), ("org.aspectj", "aspectjweaver")):
+            runtime_dependencies = [dependency for dependency in dependencies
+                                    if dependency.findtext("m:groupId", namespaces=namespace) == dependency_group
+                                    and dependency.findtext("m:artifactId", namespaces=namespace) == artifact]
+            verify(len(runtime_dependencies) == 1, f"web-plus-log: 必须发布唯一 {artifact} 依赖")
+            verify(runtime_dependencies[0].findtext("m:scope", namespaces=namespace) == "runtime",
+                   f"web-plus-log: {artifact} 必须作为 runtime 依赖发布")
     print(f"POM 已核验: {module}:{version}")
 
 # 检查对应源码的真实 JUnit 报告，防止构建成功但关键回归用例未被发现。
 required_suites = {
+    "io.github.guanxiangkai.web.plus.log.RuntimeConsumerAutoConfigurationTest",
     "io.github.guanxiangkai.web.plus.security.password.ProtocolPasswordEncoderTest",
     "io.github.guanxiangkai.jpa.plus.query.executor.KeysetCursorExtractorTest",
     "io.github.guanxiangkai.jpa.plus.query.plan.MappingPlanCacheTest",
@@ -94,7 +103,7 @@ required_suites = {
 }
 seen = set()
 totals = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
-for report in root.glob("*-plus/*/build/test-results/test/TEST-*.xml"):
+for report in root.glob("*-plus/*/build/test-results/*/TEST-*.xml"):
     suite = ET.parse(report).getroot()
     for key in totals:
         totals[key] += int(suite.get(key, "0"))
