@@ -6,7 +6,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class EntityConverterTest {
 
@@ -70,9 +70,9 @@ class EntityConverterTest {
     void convertShouldExposeMissingReverseConverterImplementation() {
         EntityConverter.register(new ForwardOnlyConverter());
 
-        assertThatIllegalStateException()
-                .isThrownBy(() -> EntityConverter.convert(new ForwardOnlyTarget("value"), ForwardOnlySource.class))
-                .withMessageContaining("已注册 TypeConverter 转换失败")
+        assertThatThrownBy(() -> EntityConverter.convert(new ForwardOnlyTarget("value"), ForwardOnlySource.class))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("已注册 TypeConverter 转换失败")
                 .hasCauseInstanceOf(UnsupportedOperationException.class);
     }
 
@@ -80,9 +80,9 @@ class EntityConverterTest {
     void convertShouldNotFallBackToBeanUtilsWhenRegisteredConverterFails() {
         EntityConverter.register(new FailingConverter());
 
-        assertThatIllegalStateException()
-                .isThrownBy(() -> EntityConverter.convert(new FailingSource("value"), FailingTarget.class))
-                .withMessageContaining("已注册 TypeConverter 转换失败")
+        assertThatThrownBy(() -> EntityConverter.convert(new FailingSource("value"), FailingTarget.class))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("已注册 TypeConverter 转换失败")
                 .hasCauseInstanceOf(IllegalStateException.class)
                 .hasMessageNotContaining("对象转换失败");
     }
