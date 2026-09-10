@@ -1,6 +1,7 @@
 package io.github.guanxiangkai.web.plus.core.domain.vo;
 
 import lombok.Data;
+import io.github.guanxiangkai.web.plus.core.model.Identifiable;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -21,11 +22,10 @@ import java.io.Serializable;
  * @since 1.0.0
  */
 @Data
-public abstract class BasePageVO implements Serializable {
+public abstract class BasePageVO implements Serializable, Identifiable<String> {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
     private String id;
 }
-

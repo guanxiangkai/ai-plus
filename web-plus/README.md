@@ -30,6 +30,13 @@ Web Plus 是面向 Spring Boot 4 / WebFlux 的企业级 Web 增强框架骨架�
 基础服务通过 `ResponseTranslator` 组合响应转换策略，按 `order()` 顺序传递每一步的返回值。
 转换器可以返回新对象与不可变列表；分页结果保留仓库提供的总数、页码、页大小和总页数。
 
+## 类型化树
+
+`web-plus-core` 提供 `Identifiable<ID>` 身份契约，以及 `ParentAware<ID>`、`TreeNode<ID, N>`
+和 `TreeAssembler`。普通 DTO 可通过 ID、父级 ID 与子节点写入方法引用装配，树节点也可直接使用
+`TreeAssembler.assemble(nodes, rootParent, comparator)`。装配会拒绝空或重复 ID 及父级环，并在全部
+校验通过后才写入子节点；父级不在输入集合中的孤儿节点不会被提升为根节点。
+
 ## 获取依赖
 
 ### 环境要求
