@@ -1,6 +1,7 @@
 package io.github.guanxiangkai.web.plus.core.domain.vo;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -22,15 +23,13 @@ import java.time.LocalDateTime;
  * @since 1.0.0
  */
 @Data
-public abstract class BaseVO implements Serializable {
+@EqualsAndHashCode(callSuper = true)
+public abstract class BaseVO extends BasePageVO {
 
     @Serial
     private static final long serialVersionUID = 1L;
-
-    private String id;
 
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
 }
-

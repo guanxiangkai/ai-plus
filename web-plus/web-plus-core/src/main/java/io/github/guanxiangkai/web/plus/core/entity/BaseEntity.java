@@ -6,6 +6,7 @@ import io.github.guanxiangkai.jpa.plus.field.autofill.annotation.UpdateBy;
 import io.github.guanxiangkai.jpa.plus.field.autofill.annotation.UpdateTime;
 import io.github.guanxiangkai.jpa.plus.field.id.annotation.AutoId;
 import io.github.guanxiangkai.jpa.plus.interceptor.logicdelete.annotation.LogicDelete;
+import io.github.guanxiangkai.web.plus.core.model.Identifiable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import jakarta.persistence.Version;
@@ -56,7 +57,7 @@ import java.time.LocalDateTime;
 @Setter
 @jakarta.persistence.MappedSuperclass
 @SQLRestriction("deleted = false")
-public abstract class BaseEntity implements Serializable {
+public abstract class BaseEntity implements Serializable, Identifiable<String> {
 
     @Serial
     private static final long serialVersionUID = 1L;
