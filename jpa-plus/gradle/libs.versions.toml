@@ -11,7 +11,7 @@ houbb-sensitive-word = "0.29.5" # houbb sensitive-word 高级 DFA 敏感词引�
 
 # ─────────────────────────── 工具库 ──────────────────────────────
 hutool = "5.8.47"              # hutool-crypto：国密 SM4、AES-CBC；hutool-core：通用工具
-slf4j = "2.0.18"               # SLF4J API：库模块只绑定门面，不绑定实现
+slf4j = "2.0.19"               # SLF4J API：库模块只绑定门面，不绑定实现
 
 # ─────────────────────────── SQL 调试 ────────────────────────────
 datasource-proxy = "1.11.0"      # datasource-proxy —— JDBC 代理层 SQL 追踪（比 P6Spy 更活跃，零连接池侵入）
