@@ -13,6 +13,8 @@
       <description>生成独立的受保护 JAR 与可选签名。</description>
       <implementation>io.github.guanxiangkai.artifact.plus.maven.ProtectMojo</implementation>
       <language>java</language>
+      <instantiationStrategy>per-lookup</instantiationStrategy>
+      <executionStrategy>once-per-session</executionStrategy>
       <phase>verify</phase>
       <requiresDependencyResolution>runtime</requiresDependencyResolution>
       <requiresProject>true</requiresProject>

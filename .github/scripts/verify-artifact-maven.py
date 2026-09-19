@@ -45,6 +45,8 @@ mojo = descriptor_xml.find("./mojos/mojo")
 require(mojo is not None, "plugin.xml 缺少 protect Mojo")
 require(mojo.findtext("goal") == "protect", "plugin.xml protect goal 不匹配")
 require(mojo.findtext("phase") == "verify", "plugin.xml protect phase 不匹配")
+require(mojo.findtext("instantiationStrategy") == "per-lookup",
+        "plugin.xml 缺少 Maven/Sisu 必需的逐次实例化策略")
 require(mojo.findtext("implementation") == "io.github.guanxiangkai.artifact.plus.maven.ProtectMojo",
         "plugin.xml Mojo 实现类不匹配")
 parameter_names = {parameter.findtext("name") for parameter in mojo.findall("./parameters/parameter")}
