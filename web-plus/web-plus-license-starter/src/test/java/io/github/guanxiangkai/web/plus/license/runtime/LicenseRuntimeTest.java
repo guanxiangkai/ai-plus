@@ -287,8 +287,11 @@ class LicenseRuntimeTest {
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             server.createContext("/lease", exchange -> {
                 try {
+                    exchange.getRequestBody().transferTo(java.io.OutputStream.nullOutputStream());
                     exchange.getResponseHeaders().set("Content-Type", contentType);
                     exchange.sendResponseHeaders(status, 1);
+                    // 固定长度响应使用缓冲输出；只发送头，声明的正文仍保持未完成。
+                    exchange.getResponseBody().flush();
                     responseStarted.countDown();
                     release.await();
                 } catch (InterruptedException interrupted) {
