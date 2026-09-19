@@ -51,7 +51,7 @@ class SpringdocOpenApiIntegrationTest {
     @RestController
     static class SampleController {
 
-        @GetMapping("/sample")
+        @GetMapping(value = "/sample", produces = "application/json")
         SampleResponse sample() {
             return new SampleResponse(Duration.ofSeconds(1), "ready");
         }
