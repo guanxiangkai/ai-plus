@@ -20,6 +20,7 @@ versions = dict(
 namespace = {"m": "http://maven.apache.org/POM/4.0.0"}
 group = "io.github.guanxiangkai"
 public_dependencies = {
+    "web-plus-license-starter": {"web-plus-license"},
     "jpa-plus-interceptor": {"jpa-plus-query"},
     "jpa-plus-starter": {"jpa-plus-query", "jpa-plus-interceptor"},
     "redis-plus-queue-starter": {"redis-plus-queue"},
@@ -43,10 +44,10 @@ for module, version in versions.items():
     verify(pom.findtext("m:artifactId", namespaces=namespace) == module, f"{module}: artifactId 不匹配")
     verify(pom.findtext("m:version", namespaces=namespace) == version, f"{module}: 发布版本不匹配")
     managed = pom.findall("m:dependencyManagement/m:dependencies/m:dependency", namespace)
-    verify(any(
+    verify(family == "artifact-plus" or any(
         dependency.findtext("m:groupId", namespaces=namespace) == "org.springframework.boot"
         and dependency.findtext("m:artifactId", namespaces=namespace) == "spring-boot-dependencies"
-        and dependency.findtext("m:version", namespaces=namespace) == boot_versions[family]
+        and dependency.findtext("m:version", namespaces=namespace) == boot_versions.get(family)
         and dependency.findtext("m:type", namespaces=namespace) == "pom"
         and dependency.findtext("m:scope", namespaces=namespace) == "import"
         for dependency in managed
@@ -86,6 +87,18 @@ for module, version in versions.items():
 
 # 检查对应源码的真实 JUnit 报告，防止构建成功但关键回归用例未被发现。
 required_suites = {
+    "io.github.guanxiangkai.web.plus.license.LicenseTokensTest",
+    "io.github.guanxiangkai.web.plus.license.LicenseKeysTest",
+    "io.github.guanxiangkai.web.plus.license.runtime.LicenseRuntimeTest",
+    "io.github.guanxiangkai.web.plus.doc.autoconfigure.SpringdocOpenApiIntegrationTest",
+    "io.github.guanxiangkai.web.plus.web.crypto.ApiCryptoServiceTest",
+    "io.github.guanxiangkai.web.plus.web.filter.ApiCryptoWebFilterTest",
+    "io.github.guanxiangkai.redis.plus.ratelimit.impl.Bucket4jTokenBucketRateLimiterTest",
+    "io.github.guanxiangkai.artifact.plus.signing.ArtifactSignaturesTest",
+    "io.github.guanxiangkai.artifact.plus.ArtifactProtectorTest",
+    "io.github.guanxiangkai.artifact.plus.KeepRulesTest",
+    "io.github.guanxiangkai.artifact.plus.ToolProcessTest",
+    "io.github.guanxiangkai.artifact.plus.gradle.ArtifactProtectionPluginTest",
     "io.github.guanxiangkai.web.plus.core.tree.TreeAssemblerTest",
     "io.github.guanxiangkai.web.plus.core.domain.vo.BaseVOInheritanceTest",
     "io.github.guanxiangkai.web.plus.core.converter.EntityConverterTest",

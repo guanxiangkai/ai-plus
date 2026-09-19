@@ -3,6 +3,9 @@ plugins {
 }
 
 val moduleBuilds = linkedMapOf(
+    "artifact-plus-core" to "artifact-plus",
+    "artifact-plus-gradle-plugin" to "artifact-plus",
+    "artifact-plus-maven-plugin" to "artifact-plus",
     "jpa-plus-core" to "jpa-plus",
     "jpa-plus-query" to "jpa-plus",
     "jpa-plus-field" to "jpa-plus",
@@ -34,6 +37,8 @@ val moduleBuilds = linkedMapOf(
     "web-plus-error" to "web-plus",
     "web-plus-web" to "web-plus",
     "web-plus-security" to "web-plus",
+    "web-plus-license" to "web-plus",
+    "web-plus-license-starter" to "web-plus",
     "web-plus-protection" to "web-plus",
     "web-plus-log" to "web-plus",
     "web-plus-doc" to "web-plus",
@@ -51,6 +56,7 @@ val buildAll = tasks.register("buildAll") {
         gradle.includedBuild("jpa-plus").task(":buildAll"),
         gradle.includedBuild("redis-plus").task(":buildAll"),
         gradle.includedBuild("web-plus").task(":buildAll"),
+        gradle.includedBuild("artifact-plus").task(":buildAll"),
     )
 }
 
@@ -71,6 +77,7 @@ tasks.named("clean") {
         gradle.includedBuild("jpa-plus").task(":cleanAll"),
         gradle.includedBuild("redis-plus").task(":cleanAll"),
         gradle.includedBuild("web-plus").task(":cleanAll"),
+        gradle.includedBuild("artifact-plus").task(":cleanAll"),
     )
 }
 
@@ -81,6 +88,7 @@ tasks.register("publishToMavenLocalAll") {
         gradle.includedBuild("jpa-plus").task(":publishToMavenLocalAll"),
         gradle.includedBuild("redis-plus").task(":publishToMavenLocalAll"),
         gradle.includedBuild("web-plus").task(":publishToMavenLocalAll"),
+        gradle.includedBuild("artifact-plus").task(":publishToMavenLocalAll"),
     )
 }
 

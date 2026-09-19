@@ -6,6 +6,7 @@
 - 源码、注释、测试、文档和配置只描述当前有效契约，不出现版本演进叙述，不保留并行接口、别名、降级分支或已弃用 API。
 - 设计模式只用于稳定变化点和公共扩展点；优先使用模板方法、策略、工厂、适配器、责任链、状态和观察者等合适模式，禁止为凑齐23种模式制造空抽象。
 - 根构建采用 Gradle composite build，三个能力族保持独立构建边界，跨能力族依赖必须通过公开 Maven 坐标和组合构建替换解析。
+- `artifact-plus` 是独立制品构建工具，通过 Gradle/Maven 插件保护消费方业务 JAR，不进入 JPA/Redis/Web 运行时依赖；混淆和签名按消费方构建配置启用。
 - 所有发布坐标和 Java 包名统一使用 `io.github.guanxiangkai`。
 - 每个可发布模块的版本唯一记录在 `gradle/module-versions.properties`；只递增发生变化的模块及受其公开契约影响的下游模块。
 - 发布制品统一进入 Maven Central，并通过 Central Portal 与 GPG 签名完成公开发布；用户名、发布令牌和私钥只能由受保护的 GitHub Actions Secret 注入。

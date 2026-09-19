@@ -51,6 +51,9 @@ jobs:
       - name: 核验发布元数据与回归测试报告
         run: python3 .github/scripts/verify-build.py
 
+      - name: 验证 Maven 业务制品与部署验签
+        run: python3 .github/scripts/verify-artifact-maven.py
+
       - name: 发布所选模块
         env:
           RELEASE_MODULES: ${{ inputs.modules }}

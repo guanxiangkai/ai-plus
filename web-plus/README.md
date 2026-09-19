@@ -10,6 +10,8 @@ Web Plus 是面向 Spring Boot 4 / WebFlux 的企业级 Web 增强框架骨架�
 | `web-plus-error` | 统一异常、错误码、全局异常处理和错误码文档贡献 |
 | `web-plus-web` | WebFlux 基础能力、Controller/Service/Repository 基类、JPA Plus/MapStruct Plus 集成、接口入参出参加密 |
 | `web-plus-security` | 当前用户上下文、认证过滤器、鉴权注解、安全自动配置、请求参数令牌解析 |
+| `web-plus-license` | 标准签名许可证签发与校验，不依赖 Spring |
+| `web-plus-license-starter` | 按需引入的离线授权、在线短期租约、启动及 WebFlux 请求校验 |
 | `web-plus-protection` | 防重复提交、服务侧限流、防刷等接口保护能力 |
 | `web-plus-log` | HTTP TraceId、WebClient 透传、访问日志、操作日志、登录日志、数据变更桥接和日志 SPI |
 | `web-plus-doc` | SpringDoc / OpenAPI 文档增强 |
@@ -17,13 +19,14 @@ Web Plus 是面向 Spring Boot 4 / WebFlux 的企业级 Web 增强框架骨架�
 | `web-plus-dict` | 基于 Redis Plus 三级缓存的字典翻译与刷新 |
 | `web-plus-mq` | Spring Cloud Stream 消息、Observation 与消费线程 TraceId 恢复能力 |
 | `web-plus-job` | PowerJob Worker 公共处理器 |
-| `web-plus-starter` | 聚合入口，传递全部能力模块 |
+| `web-plus-starter` | 通用聚合入口；强制授权 starter 由业务项目单独引入 |
 
 ## 设计原则
 
 - 普通模块只暴露 API、注解、SPI 和可复用基础类型。
 - 自动装配、过滤器、切面和运行时实现放入 starter 或各能力模块的自动配置中。
-- 业务系统按需引入单能力模块；需要全量能力时引入 `web-plus-starter`。
+- 业务系统按需引入单能力模块；通用能力由 `web-plus-starter` 聚合。需要软件授权时额外引入
+  `web-plus-license-starter`，按 [授权接入说明](web-plus-license-starter/README.md) 选择在线或离线模式。
 - Web Plus 按 Maven Central 独立制品消费，消费方项目不要通过本地源码目录引入。
 - 不把任何业务系统的私有语义、表结构、租户规则或具体服务调用写进 Web Plus。
 
