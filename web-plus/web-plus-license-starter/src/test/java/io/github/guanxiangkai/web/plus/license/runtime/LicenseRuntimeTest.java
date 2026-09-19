@@ -1,5 +1,6 @@
 package io.github.guanxiangkai.web.plus.license.runtime;
 
+import com.sun.net.httpserver.HttpServer;
 import io.github.guanxiangkai.web.plus.license.LicenseClaims;
 import io.github.guanxiangkai.web.plus.license.LicenseException;
 import io.github.guanxiangkai.web.plus.license.LicenseMode;
@@ -8,6 +9,7 @@ import io.github.guanxiangkai.web.plus.license.autoconfigure.LicenseAutoConfigur
 import io.github.guanxiangkai.web.plus.license.properties.LicenseProperties;
 import io.github.guanxiangkai.web.plus.license.web.LicenseWebFilter;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -22,7 +24,9 @@ import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,6 +42,7 @@ import reactor.core.publisher.Mono;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** 验证许可证在启动、续租、到期和请求入口的实际拒绝路径。 */
@@ -186,6 +191,39 @@ class LicenseRuntimeTest {
         assertTrue(subscriber.getBody().toCompletableFuture().isCompletedExceptionally());
     }
 
+    @Test void clientRejectsForbiddenResponseBeforeIncompleteBodyFinishes() throws Exception {
+        MutableClock clock = new MutableClock(NOW);
+        LicenseGuard guard = new LicenseGuard(clock, () -> 0L, Set.of());
+        guard.accept(claims(LicenseMode.ONLINE, "existing-nonce", NOW));
+        try (var server = new IncompleteResponseServer(403, "application/jwt")) {
+            LicenseProperties properties = httpProperties(server.endpoint());
+            try (var runtime = new LicenseRuntime(properties, verifier(clock, LicenseMode.ONLINE), guard,
+                    new HttpsLicenseClient(properties))) {
+                assertTimeoutPreemptively(Duration.ofSeconds(5), runtime::refresh);
+                assertThrows(LicenseException.class, guard::current);
+            }
+            assertTrue(server.responseStarted.await(1, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test void clientRejectsWrongContentTypeBeforeIncompleteBodyFinishes() throws Exception {
+        try (var server = new IncompleteResponseServer(200, "text/plain");
+                var client = new HttpsLicenseClient(httpProperties(server.endpoint()))) {
+            assertTimeoutPreemptively(Duration.ofSeconds(5),
+                    () -> assertThrows(LicenseException.class, () -> client.fetch("nonce")));
+            assertTrue(server.responseStarted.await(1, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test void clientTreatsServerErrorBeforeIncompleteBodyFinishesAsTemporaryFailure() throws Exception {
+        try (var server = new IncompleteResponseServer(503, "application/jwt");
+                var client = new HttpsLicenseClient(httpProperties(server.endpoint()))) {
+            assertTimeoutPreemptively(Duration.ofSeconds(5),
+                    () -> assertThrows(IOException.class, () -> client.fetch("nonce")));
+            assertTrue(server.responseStarted.await(1, TimeUnit.SECONDS));
+        }
+    }
+
     @Test void rejectsHttpAndMixedModeConfiguration() {
         LicenseProperties online = new LicenseProperties(LicenseMode.ONLINE, "issuer", "customer", "business", "instance",
                 Path.of("public.pem"), null, URI.create("http://license.example/lease"), Path.of("credential"), null, null, Set.of());
@@ -209,6 +247,13 @@ class LicenseRuntimeTest {
                 mode == LicenseMode.ONLINE ? directory.resolve("credential") : null, Duration.ofMinutes(1), Duration.ofSeconds(5), Set.of());
     }
 
+    /** 仅用于直连 loopback 传输层回归；生产构造路径仍由 validate 强制 HTTPS。 */
+    private LicenseProperties httpProperties(URI endpoint) throws IOException {
+        Path credential = Files.writeString(directory.resolve("credential"), "test-credential");
+        return new LicenseProperties(LicenseMode.ONLINE, "issuer", "customer", "business", "instance",
+                directory.resolve("public.pem"), null, endpoint, credential, Duration.ofMinutes(1), Duration.ofSeconds(30), Set.of());
+    }
+
     private static LicenseClaims claims(LicenseMode mode, String nonce, Instant now) {
         return new LicenseClaims("license", "issuer", "customer", "business", "instance", mode, now, now,
                 now.plusSeconds(300), Set.of("reports"), nonce);
@@ -230,6 +275,39 @@ class LicenseRuntimeTest {
             return priorToken;
         }
         @Override public void close() { closed = true; }
+    }
+
+    /** 发送响应头后保持声明的单字节响应体未完成，以验证客户端不会等待响应体才处理拒绝。 */
+    private static final class IncompleteResponseServer implements AutoCloseable {
+        private final HttpServer server;
+        private final CountDownLatch release = new CountDownLatch(1);
+        private final CountDownLatch responseStarted = new CountDownLatch(1);
+
+        private IncompleteResponseServer(int status, String contentType) throws IOException {
+            server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+            server.createContext("/lease", exchange -> {
+                try {
+                    exchange.getResponseHeaders().set("Content-Type", contentType);
+                    exchange.sendResponseHeaders(status, 1);
+                    responseStarted.countDown();
+                    release.await();
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    exchange.close();
+                }
+            });
+            server.start();
+        }
+
+        private URI endpoint() {
+            return URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/lease");
+        }
+
+        @Override public void close() {
+            release.countDown();
+            server.stop(0);
+        }
     }
 
     private static final class MutableClock extends Clock {

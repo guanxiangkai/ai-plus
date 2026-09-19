@@ -167,8 +167,11 @@ class ApiCryptoServiceTest {
 
     @Test
     void shouldUseBouncyCastleForProductionSm4CipherAndRoundTripFixedInput() {
-        byte[] key = "0123456789abcdef".getBytes(StandardCharsets.UTF_8);
-        byte[] iv = "abcdef9876543210".getBytes(StandardCharsets.UTF_8);
+        byte[] key = new byte[16];
+        byte[] iv = new byte[16];
+        var random = new java.security.SecureRandom();
+        random.nextBytes(key);
+        random.nextBytes(iv);
         byte[] plaintext = "provider-round-trip:应收账款".getBytes(StandardCharsets.UTF_8);
         SM4 sm4 = new SM4(Mode.CBC, Padding.PKCS5Padding, key, iv);
 

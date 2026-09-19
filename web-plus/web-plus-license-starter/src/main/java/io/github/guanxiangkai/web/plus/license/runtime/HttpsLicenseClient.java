@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +41,7 @@ final class HttpsLicenseClient implements LicenseLeaseClient {
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .header("Accept", "application/jwt")
                 .POST(HttpRequest.BodyPublishers.ofString(body)).build();
-        var pending = client.sendAsync(request, ignored -> new BoundedBody());
+        var pending = client.sendAsync(request, HttpsLicenseClient::responseBody);
         HttpResponse<byte[]> response;
         try {
             response = pending.get(properties.requestTimeout().toMillis(), TimeUnit.MILLISECONDS);
@@ -49,21 +50,37 @@ final class HttpsLicenseClient implements LicenseLeaseClient {
             throw new IOException("授权服务请求失败");
         } catch (ExecutionException failure) {
             pending.cancel(true);
-            if (failure.getCause() instanceof LicenseException rejected) throw rejected;
-            throw new IOException("授权服务请求失败");
+            rethrowResponseFailure(failure);
+            throw new AssertionError("已重新抛出响应失败");
         } catch (InterruptedException interrupted) {
             pending.cancel(true);
             throw interrupted;
         }
+        return new String(response.body(), StandardCharsets.UTF_8);
+    }
+
+    /** 在读取响应体前确定拒绝、暂时不可用和响应格式，避免截断响应掩盖授权撤销。 */
+    private static HttpResponse.BodySubscriber<byte[]> responseBody(HttpResponse.ResponseInfo response) {
         if (response.statusCode() >= 500 && response.statusCode() <= 599) {
-            throw new IOException("授权服务暂时不可用");
+            throw new CompletionException(new IOException("授权服务暂时不可用"));
         }
         if (response.statusCode() != 200) throw new LicenseException("授权服务拒绝续租");
         if (!response.headers().firstValue("Content-Type").orElse("").split(";", 2)[0].trim()
                 .equalsIgnoreCase("application/jwt")) {
             throw new LicenseException("授权服务响应格式不符");
         }
-        return new String(response.body(), StandardCharsets.UTF_8);
+        return new BoundedBody();
+    }
+
+    /** 保留异步 HTTP 客户端包装前的授权或暂时故障类别。 */
+    private static void rethrowResponseFailure(ExecutionException failure) throws IOException {
+        Throwable cause = failure;
+        while ((cause instanceof ExecutionException || cause instanceof CompletionException) && cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        if (cause instanceof LicenseException rejected) throw rejected;
+        if (cause instanceof IOException unavailable) throw unavailable;
+        throw new IOException("授权服务请求失败");
     }
 
     private String credential() throws IOException {

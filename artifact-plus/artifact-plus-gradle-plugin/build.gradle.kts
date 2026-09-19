@@ -21,8 +21,9 @@ gradlePlugin {
 val proguardVersion = libs.versions.proguard
 
 tasks.named<ProcessResources>("processResources") {
-    inputs.property("proguardVersion", proguardVersion)
+    val resolvedProguardVersion = proguardVersion.get()
+    inputs.property("proguardVersion", resolvedProguardVersion)
     filesMatching("META-INF/artifact-plus-tool.properties") {
-        expand("proguardVersion" to proguardVersion.get())
+        expand("proguardVersion" to resolvedProguardVersion)
     }
 }
