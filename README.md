@@ -1,6 +1,6 @@
 # AI Plus
 
-AI Plus 是 JPA Plus、Redis Plus 与 Web Plus 的 Java monorepo。三个能力族共享一个 Git 仓库和质量门禁，并保留清晰的模块边界；39 个 Maven 模块独立维护版本。
+AI Plus 是 JPA Plus、Redis Plus 与 Web Plus 的 Java monorepo，并提供独立的 Artifact Plus 制品构建工具。三个运行时能力族和构建工具共享质量门禁；44 个 Maven 模块独立维护版本。
 
 ## 仓库结构
 
@@ -8,9 +8,13 @@ AI Plus 是 JPA Plus、Redis Plus 与 Web Plus 的 Java monorepo。三个能力�
 | --- | --- | ---: |
 | `jpa-plus/` | JPA 查询、字段治理、拦截、审计、多数据源与分片 | 8 |
 | `redis-plus/` | Redis 核心、锁、缓存、限流、幂等、队列与治理 | 19 |
-| `web-plus/` | WebFlux、安全、防护、日志、文档、Excel、消息与任务 | 12 |
+| `web-plus/` | WebFlux、安全、业务授权、防护、日志、文档、Excel、消息与任务 | 14 |
+| `artifact-plus/` | 业务 JAR 的可选成员混淆、完整制品签名、Gradle/Maven 接入与独立验签 | 3 |
 
 根 Gradle composite build 会把 Web Plus 使用的 JPA Plus、Redis Plus Maven 坐标替换为同仓源码模块，因此一次构建可以验证完整依赖图。
+
+业务项目通过 [Artifact Plus 构建配置](artifact-plus/README.md) 选择是否保护最终业务 JAR。
+该工具不进入业务运行时依赖；默认关闭，启用后输出独立制品及可选签名。部署端必须使用独立可信公钥验签。
 
 ## 设计与扩展
 
@@ -46,7 +50,8 @@ Web 响应转换链使用每个策略的返回值，允许返回新对象和不�
 
 ## 技术选型依据
 
-版本核对日期为 2026-09-06；精确依赖以各能力族的 Version Catalog 为准。
+关键依赖核对日期为 2026-09-18；精确依赖以各能力族的 Version Catalog 为准。
+核验范围、候选版本与架构取舍见 [技术基线与采用依据](TECHNOLOGY.md)。
 
 | 项目 | 采用版本或方案 | 依据与边界 |
 | --- | --- | --- |
@@ -54,10 +59,12 @@ Web 响应转换链使用每个策略的返回值，允许返回新对象和不�
 | Spring Boot | 4.1.1 | [官方稳定发布](https://github.com/spring-projects/spring-boot/releases/tag/v4.1.1)；4.2.0-M1 是预发布 |
 | Spring Cloud | 2025.1.3 | [官方兼容矩阵](https://spring.io/projects/spring-cloud/)包含 Boot 4.1.x |
 | Gradle | 9.7.1 | [官方版本元数据](https://services.gradle.org/versions/current)与 Wrapper SHA-256 一致 |
-| Redis 原语 | Redisson 4.7.0、Bucket4j 8.19.0 | 复用分布式锁和令牌桶实现，保持已有 SPI |
+| Redis 原语 | Redisson 4.7.0、Bucket4j 8.20.0 | 复用分布式锁和令牌桶实现，保持已有 SPI |
 | 查询映射缓存 | Caffeine，由 Boot BOM 托管 | [官方容量淘汰机制](https://github.com/ben-manes/caffeine/wiki/Eviction)与[原子加载](https://github.com/ben-manes/caffeine/wiki/Population)，无需自研 LRU |
 | Lombok | 1.18.48 | [官方发布说明](https://projectlombok.org/changelog)；FreeFair 统一配置编译、测试和 delombok |
 | NullAway | 0.14.1 | [官方修复说明](https://github.com/uber/NullAway/releases/tag/v0.14.1)；搭配 Error Prone 2.50.0，保持默认检查模式 |
+| 制品保护 | ProGuard 7.10.0、JDK RSA-PSS | 独立构建工具；成员混淆、完整 JAR 签名与部署端验签分别负责不同边界 |
+| 构建 API 与工具 | Maven API 3.9.16、Versions Plugin 0.64.0 | Maven 3 稳定 API；不采用 Maven 4 RC |
 
 依赖升级需要 Linux CI 验证编译器、生成代码、自动装配与回归行为。版本已发布或源码已修改，
 都不能替代构建通过的证据。现有 Gradle 配置缓存、Version Catalog、Spring BOM、
@@ -94,10 +101,13 @@ Maven Central 的公开制品无需读取凭据。版本以本仓库的模块版
 ./gradlew buildAll --no-daemon
 ./gradlew generatePomAll --no-daemon
 python3 .github/scripts/verify-build.py
+python3 .github/scripts/verify-artifact-maven.py
 ```
 
 CI 生成全部模块的 POM，核对发布坐标、模块版本、内部依赖与 Caffeine 运行时范围，
 并确认关键回归测试报告存在且未被跳过。元数据验证不执行签名或制品发布。
+Artifact Plus 测试使用一次性测试密钥，覆盖真实 ProGuard、Gradle/Maven 消费方、Boot JAR 启动、
+标准 RSA-PSS 签名互通和失败拒绝；测试不使用发布凭据或向外部仓库上传制品。
 
 ## 依赖治理
 

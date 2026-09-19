@@ -51,6 +51,8 @@ include(
     "web-plus-error",
     "web-plus-web",
     "web-plus-security",
+    "web-plus-license",
+    "web-plus-license-starter",
     "web-plus-protection",
     "web-plus-log",
     "web-plus-doc",

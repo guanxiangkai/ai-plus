@@ -55,3 +55,6 @@ includeBuild("redis-plus") {
 }
 
 includeBuild("web-plus")
+
+// 制品保护是独立构建工具，不进入三个业务运行时能力族的依赖图。
+includeBuild("artifact-plus")

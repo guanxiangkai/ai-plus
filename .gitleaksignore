@@ -1,0 +1,3 @@
+# Historical SM4 round-trip fixture: a public sequential ASCII test vector, never a credential.
+# The test now generates an ephemeral key; only this exact historical finding is excluded.
+0de95808d6daf1e59a323188a48ff941747a767c:web-plus/web-plus-web/src/test/java/io/github/guanxiangkai/web/plus/web/crypto/ApiCryptoServiceTest.java:generic-api-key:170

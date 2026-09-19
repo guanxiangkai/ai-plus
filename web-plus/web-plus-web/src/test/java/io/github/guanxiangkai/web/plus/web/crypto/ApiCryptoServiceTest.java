@@ -1,5 +1,8 @@
 package io.github.guanxiangkai.web.plus.web.crypto;
 
+import cn.hutool.crypto.Mode;
+import cn.hutool.crypto.Padding;
+import cn.hutool.crypto.symmetric.SM4;
 import io.github.guanxiangkai.web.plus.web.properties.ApiCryptoProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -160,6 +163,22 @@ class ApiCryptoServiceTest {
 
         assertThat(service.requestEnabled()).isFalse();
         assertThat(service.responseEnabled()).isFalse();
+    }
+
+    @Test
+    void shouldUseBouncyCastleForProductionSm4CipherAndRoundTripFixedInput() {
+        byte[] key = new byte[16];
+        byte[] iv = new byte[16];
+        var random = new java.security.SecureRandom();
+        random.nextBytes(key);
+        random.nextBytes(iv);
+        byte[] plaintext = "provider-round-trip:应收账款".getBytes(StandardCharsets.UTF_8);
+        SM4 sm4 = new SM4(Mode.CBC, Padding.PKCS5Padding, key, iv);
+
+        byte[] ciphertext = sm4.encrypt(plaintext);
+
+        assertThat(sm4.getCipher().getProvider().getName()).isEqualTo("BC");
+        assertThat(sm4.decrypt(ciphertext)).isEqualTo(plaintext);
     }
 
     private ApiCryptoService createService(ApiCryptoProperties.Strategy strategy, boolean requestEnabled, boolean responseEnabled) {

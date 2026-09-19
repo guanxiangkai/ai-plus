@@ -6,6 +6,7 @@ updates:
       - /jpa-plus
       - /redis-plus
       - /web-plus
+      - /artifact-plus
     schedule:
       interval: weekly
       day: monday
