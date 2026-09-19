@@ -194,7 +194,7 @@ class LicenseRuntimeTest {
     @Test void clientRejectsForbiddenResponseBeforeIncompleteBodyFinishes() throws Exception {
         MutableClock clock = new MutableClock(NOW);
         LicenseGuard guard = new LicenseGuard(clock, () -> 0L, Set.of());
-        guard.accept(claims(LicenseMode.ONLINE, "existing-nonce", NOW));
+        guard.accept(claims(LicenseMode.ONLINE, "existing-valid-test-nonce", NOW));
         try (var server = new IncompleteResponseServer(403, "application/jwt")) {
             LicenseProperties properties = httpProperties(server.endpoint());
             try (var runtime = new LicenseRuntime(properties, verifier(clock, LicenseMode.ONLINE), guard,
