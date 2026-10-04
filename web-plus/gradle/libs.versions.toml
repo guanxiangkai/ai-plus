@@ -22,7 +22,7 @@ hutool = "5.8.47"              # Hutool 工具集，供 web-plus-core 的通用�
 bouncycastle = "1.86"          # BC 稳定版；SM4-CBC provider 接口已核对，须通过接口加密与完整性回归
 
 # ─────────────────────────── 任务调度 ──────────────────────────────
-powerjob = "5.1.2"             # PowerJob Worker SDK，供 web-plus-job 公共处理器使用
+powerjob = "5.1.7"             # PowerJob Worker SDK，供 web-plus-job 公共处理器使用
 
 # ─────────────────────────── 测试 ────────────────────────────────
 junit = "6.1.3"                # JUnit 6.1 当前稳定补丁
