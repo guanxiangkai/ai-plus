@@ -12,7 +12,7 @@ spring-boot = "4.1.1"          # Spring Boot 4.1.1 稳定补丁；带入 Spring 
 junit = "6.1.3"                # JUnit 6.1 当前稳定补丁
 
 # ─────────────────────────── Gradle 插件 ─────────────────────────
-lombok-plugin = "9.5.0"         # Lombok Gradle 插件
+lombok-plugin = "9.8.0"         # Lombok Gradle 插件
 lombok = "1.18.48"             # Lombok 稳定版；统一编译、测试与 delombok，避免沿用插件默认处理器
 testcontainers = "2.0.5"       # Testcontainers Java：集成测试容器编排
 archunit = "1.5.0"             # ArchUnit 当前稳定版，支持 JUnit 6、JDK 25 与 Java 27 class 文件
