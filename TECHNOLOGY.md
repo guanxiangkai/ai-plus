@@ -8,29 +8,29 @@ Spring BOM 管理的全部传递依赖、安全公告和全部 GitHub Actions �
 
 | 组件 | 当前目录版本 | 核验与采用边界 |
 | --- | --- | --- |
-| Gradle | 9.7.1 | 官方 current 稳定版；分发 SHA-256 与 Wrapper 配置一致 |
+| Gradle | 9.8.1 | 官方 current 稳定版；分发 SHA-256 与 Wrapper 配置一致 |
 | Spring Boot / Cloud | 4.2.0 / 2026.0.0 | 当前稳定版，基于 Spring Framework 7.1；Cloud 2026.0.0 对应 Boot 4.2.x |
 | ProGuard | 7.10.0 | 当前稳定版，构建工具通过独立 JVM 调用 |
-| Maven Plugin API / Core | 3.9.16 | Maven 官方建议 3.9.x 用户使用该稳定补丁；不选择 4.0.0 RC |
+| Maven Plugin API / Core | 3.10.0 | Maven 官方稳定版本；不选择 Maven 4 RC |
 | SLF4J | 2.0.19 | JPA 模块只依赖标准 Logger/LoggerFactory 门面；需 CI 确认解析与测试 |
-| Versions Plugin | 0.64.0 | 最新稳定版本，仅影响依赖更新报告任务 |
-| Lombok / FreeFair | 1.18.48 / 9.5.0 | 元数据中的当前稳定版；生成代码兼容性仍由 Linux CI 验证 |
-| JUnit / Testcontainers / ArchUnit | 6.1.3 / 2.0.5 / 1.5.0 | 元数据中的当前稳定版 |
-| Error Prone / NullAway / Error Prone Plugin | 2.50.0 / 0.14.1 / 5.1.1 | 元数据中的当前稳定版 |
+| Versions Plugin | 0.67.0 | 最新稳定版本，仅影响依赖更新报告任务 |
+| Lombok / FreeFair | 1.18.48 / 9.8.3 | 元数据中的当前稳定版；生成代码兼容性仍由 Linux CI 验证 |
+| JUnit / Testcontainers / ArchUnit | 6.1.3 / 2.0.5 / 1.5.1 | 元数据中的当前稳定版 |
+| Error Prone / NullAway / Error Prone Plugin | 2.50.0 / 0.14.2 / 5.2.0 | 元数据中的当前稳定版 |
 | Vanniktech Publish | 0.37.0 | 元数据中的当前稳定版 |
-| Redisson / Hutool / Druid | 4.7.0 / 5.8.47 / 1.2.28 | 元数据中的当前稳定版 |
+| Redisson / Hutool / Druid | 4.8.0 / 5.8.47 / 1.2.28 | 元数据中的当前稳定版 |
 | Sensitive Word / Datasource Proxy | 0.29.5 / 1.11.0 | 元数据中的当前稳定版 |
-| MapStruct Plus / FastExcel / POI | 1.5.2 / 1.3.0 / 5.5.1 | 元数据中的当前稳定版 |
-| PowerJob / JJWT | 5.1.2 / 0.13.0 | 元数据中的当前稳定版 |
+| MapStruct Plus / FastExcel / POI | 1.5.3 / 1.3.0 / 5.5.1 | 元数据中的当前稳定版 |
+| PowerJob / JJWT | 5.1.7 / 0.13.0 | 元数据中的当前稳定版 |
 
 以下组件的采用依据覆盖项目实际调用面；发布说明与静态源码核对不替代 Linux CI 的运行证据：
 
 | 组件 | 当前锁定值 | 兼容性证据与必要验收 |
 | --- | --- | --- |
-| Bucket4j | 8.20.0 | 官方源码保留 `Bucket.builder`、`Bandwidth.builder`、`tryConsume`；CI 覆盖限流耗尽和 key 隔离 |
+| Bucket4j | 8.21.0 | 官方源码保留 `Bucket.builder`、`Bandwidth.builder`、`tryConsume`；CI 覆盖限流耗尽和 key 隔离 |
 | Springdoc / Swagger Annotations | 3.1.1 / 2.2.55 | Springdoc 官方明确升级 swagger-core 到 2.2.55；annotations Java 源码无改变，`Duration`/间接 Set 文档输出有变化；CI 验证真实 `/v3/api-docs` |
 | Bouncy Castle | 1.86 | 官方 SM4 provider 保留 CBC/128 位 KeyGen；SM4 变更涉及项目未使用的 KeyAgreement/CMS 和 GCM/CCM 参数；CI 验证 Hutool 实际 provider 与加解密 |
-| Oracle GraalVM | 25.0.4 | Gradle 9.7.1 支持 JDK 25；当前 `setup-java` GraalVM resolver 与官网 25.3 发行线目录不匹配，保持基线 |
+| Oracle GraalVM | 25.0.4 | Gradle 9.8.1 支持 JDK 25；当前 `setup-java` GraalVM resolver 与官网 25.3 发行线目录不匹配，保持基线 |
 
 GraalVM 官网 SDKMAN 示例为 `25.3.4+1.r25-graal`，GDS archive 使用
 `25i3/archive/graalvm-jdk-25i3-25.0.4.1_linux-x64_bin.tar.gz`。当前所核对的 `setup-java` resolver
@@ -41,7 +41,7 @@ GraalVM 官网 SDKMAN 示例为 `25.3.4+1.r25-graal`，GDS archive 使用
 JPA 模块发布 SLF4J runtime 依赖，其版本会进入 POM。JPA 的内部依赖以及 Web 的公开、运行时和可选
 依赖共同构成版本传播范围；版本表中的相关 JPA/Web 模块使用独立补丁版本。Redis 限流模块、对应 starter
 与聚合 starter 的版本覆盖 Bucket4j 发布依赖闭包。Artifact Plus 与授权模块的
-初始版本统一为 1.0.0；可用性以 Maven Central 实际坐标为准。Maven 插件编译使用 3.9.16 API，声明的最低
+初始版本统一为 1.0.0；可用性以 Maven Central 实际坐标为准。Maven 插件编译使用 3.10.0 API，声明的最低
 Maven 运行版本为 3.9.11；当前只调用稳定 Maven 3 接口，兼容性需要消费方 CI 验收。
 
 ## 业务制品保护的架构
@@ -92,11 +92,11 @@ Linux CI 中的验收入口是 `buildAll generatePomAll`、`.github/scripts/veri
 ## 来源
 
 - [Gradle 官方当前版本](https://services.gradle.org/versions/current)
-- [Maven 3.9.16 官方发行说明](https://maven.apache.org/docs/3.9.16/release-notes.html)
+- [Maven 3.10.0 官方发行说明](https://maven.apache.org/docs/3.10.0/release-notes.html)
 - [GraalVM 官方下载](https://www.graalvm.org/downloads/)：区分 JDK 基线与 GraalVM 发行线。
-- [Gradle 9.7.1 Java 兼容表](https://docs.gradle.org/9.7.1/userguide/compatibility.html)
+- [Gradle 9.8.1 Java 兼容表](https://docs.gradle.org/9.8.1/userguide/compatibility.html)
 - [工作流固定提交的 setup-java GraalVM resolver](https://github.com/actions/setup-java/blob/dd06d9cba3e5552c54d9f8ea23572deb30010f7c/src/distributions/graalvm/installer.ts#L234)
-- [Bucket4j 8.20.0 发布说明](https://github.com/bucket4j/bucket4j/releases/tag/8.20.0)
+- [Bucket4j 8.21.0 发布说明](https://github.com/bucket4j/bucket4j/releases/tag/8.21.0)
 - [Springdoc 3.1.1 发布说明](https://github.com/springdoc/springdoc-openapi/releases/tag/v3.1.1)
 - [Swagger 2.2.55 发布说明](https://github.com/swagger-api/swagger-core/releases/tag/v2.2.55)
 - [Bouncy Castle 1.86 官方发布说明](https://github.com/bcgit/bc-java/blob/r1rv86/docs/releasenotes.md)
