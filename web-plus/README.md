@@ -48,7 +48,7 @@ Web Plus 是面向 Spring Boot 4 / WebFlux 的企业级 Web 增强框架骨架�
 | --- | --- |
 | JDK | Oracle GraalVM 25（最新 GA 修复版） |
 | Spring Boot | 4.2.0+ |
-| Gradle | 9.7.1+ |
+| Gradle | 9.8.1+ |
 
 ### 推荐方式：Starter
 

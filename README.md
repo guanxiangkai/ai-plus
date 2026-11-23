@@ -50,7 +50,7 @@ Web 响应转换链使用每个策略的返回值，允许返回新对象和不�
 
 ## 技术选型依据
 
-关键依赖核对日期为 2026-09-18；精确依赖以各能力族的 Version Catalog 为准。
+完整版本清单见各能力族的 Version Catalog。
 核验范围、候选版本与架构取舍见 [技术基线与采用依据](TECHNOLOGY.md)。
 
 | 项目 | 采用版本或方案 | 依据与边界 |
@@ -59,12 +59,12 @@ Web 响应转换链使用每个策略的返回值，允许返回新对象和不�
 | Spring Boot | 4.2.0 | [官方稳定发布](https://github.com/spring-projects/spring-boot/releases/tag/v4.2.0) |
 | Spring Cloud | 2026.0.0 | [官方兼容矩阵](https://spring.io/projects/spring-cloud/)对应 Boot 4.2.x |
 | Gradle | 9.8.1 | [官方版本元数据](https://services.gradle.org/versions/current)与 Wrapper SHA-256 一致 |
-| Redis 原语 | Redisson 4.8.0、Bucket4j 8.21.0 | 复用分布式锁和令牌桶实现，保持已有 SPI |
+| Redis 原语 | Redisson 4.8.0、Bucket4j 8.23.0 | 复用分布式锁和令牌桶实现，保持已有 SPI |
 | 查询映射缓存 | Caffeine，由 Boot BOM 托管 | [官方容量淘汰机制](https://github.com/ben-manes/caffeine/wiki/Eviction)与[原子加载](https://github.com/ben-manes/caffeine/wiki/Population)，无需自研 LRU |
 | Lombok | 1.18.48 | [官方发布说明](https://projectlombok.org/changelog)；FreeFair 统一配置编译、测试和 delombok |
-| NullAway | 0.14.2 | [官方修复说明](https://github.com/uber/NullAway/releases/tag/v0.14.2)；搭配 Error Prone 2.50.0，保持默认检查模式 |
+| NullAway | 0.14.4 | [官方修复说明](https://github.com/uber/NullAway/releases/tag/v0.14.4)；搭配 Error Prone 2.53.0，保持默认检查模式 |
 | 制品保护 | ProGuard 7.10.0、JDK RSA-PSS | 独立构建工具；成员混淆、完整 JAR 签名与部署端验签分别负责不同边界 |
-| 构建 API 与工具 | Maven API 3.10.0、Versions Plugin 0.67.0 | Maven 3 稳定 API；不采用 Maven 4 RC |
+| 构建 API 与工具 | Maven API 3.10.2、Versions Plugin 0.67.0 | Maven 3 稳定 API；不采用 Maven 4 RC |
 
 依赖升级需要 Linux CI 验证编译器、生成代码、自动装配与回归行为。版本已发布或源码已修改，
 都不能替代构建通过的证据。现有 Gradle 配置缓存、Version Catalog、Spring BOM、

@@ -162,8 +162,8 @@ dependencies {
 
     // 字段治理第三方增强
     implementation("com.github.houbb:sensitive-word:0.29.5")
-    implementation("cn.hutool:hutool-crypto:5.8.46")
-    implementation("cn.hutool:hutool-core:5.8.46")
+    implementation("cn.hutool:hutool-crypto:5.8.48")
+    implementation("cn.hutool:hutool-core:5.8.48")
 }
 ```
 
