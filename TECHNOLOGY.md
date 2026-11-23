@@ -1,8 +1,8 @@
 # 技术基线与采用依据
 
-核验日期：2026-09-18。范围为 Gradle Wrapper、Version Catalog 中显式版本及业务制品保护的直接执行路径。
-“稳定版本已存在”来自官方版本元数据、Maven Central 或 Plugin Portal；它不代表当前分支已通过兼容性验证。
-Spring BOM 管理的全部传递依赖、安全公告和全部 GitHub Actions 固定提交不在此次逐项核验范围内。
+核验日期：2026-11-23。范围为 Gradle Wrapper、Version Catalog 中显式版本及业务制品保护的直接执行路径。
+版本选择依据官方版本元数据、Maven Central 或 Plugin Portal；本次变更由 PR #44 的 Linux CI 验收。
+Spring BOM 管理的传递依赖和安全公告仍由工作流定期更新检查。
 
 ## 版本决策
 
@@ -38,7 +38,7 @@ GraalVM 25 的 CPU/CSPU 修复版按官方发布日历持续更新，工作流�
 JPA 模块发布 SLF4J runtime 依赖，其版本会进入 POM。JPA 的内部依赖以及 Web 的公开、运行时和可选
 依赖共同构成版本传播范围；版本表中的相关 JPA/Web 模块使用独立补丁版本。Redis 限流模块、对应 starter
 与聚合 starter 的版本覆盖 Bucket4j 发布依赖闭包。Artifact Plus 与授权模块的
-初始版本统一为 1.0.0；可用性以 Maven Central 实际坐标为准。Maven 插件编译使用 3.10.0 API，声明的最低
+版本表记录本次基线升级后的独立坐标；可用性以 Maven Central 实际坐标为准。Maven 插件编译使用 3.10.0 API，声明的最低
 Maven 运行版本为 3.9.11；当前只调用稳定 Maven 3 接口，兼容性需要消费方 CI 验收。
 
 ## 业务制品保护的架构
@@ -76,8 +76,8 @@ GitHub 2024 年的介绍博客仅作为机制来源，不用于推断当前产�
 
 ## 验证边界
 
-本机仅完成源码修改、差异空白检查及 Maven 描述符 XML 静态检查；没有执行 Gradle、Maven、JUnit、
-TestKit 或仓库 Python 验证脚本，不能宣称已编译或测试通过。
+本机未执行 Gradle、Maven、JUnit 或 TestKit。PR #44 的 Linux CI 执行完整 Gradle 构建、测试、POM 生成、
+Maven 业务制品验证及 Gitleaks，结果以 [PR #44](https://github.com/guanxiangkai/ai-plus/pull/44) 的必需检查为准。
 
 Linux CI 中的验收入口是 `buildAll generatePomAll`、`.github/scripts/verify-build.py` 和
 `.github/scripts/verify-artifact-maven.py`。测试源码覆盖真实 ProGuard、快照一致性、规则注入拒绝、
