@@ -87,7 +87,7 @@ hibernate-core = { group = "org.hibernate.orm", name = "hibernate-core" }
 # 这些依赖只在对应能力模块直接使用，聚合 starter 通过模块依赖传递
 mapstruct-plus-spring-boot-starter = { group = "io.github.linpeilie", name = "mapstruct-plus-spring-boot-starter", version.ref = "mapstruct-plus" }
 springdoc-openapi-starter-webflux-ui = { group = "org.springdoc", name = "springdoc-openapi-starter-webflux-ui", version.ref = "springdoc" }
-swagger-annotations-jakarta = { group = "io.swagger.core.v3", name = "swagger-annotations-jakarta", version.ref = "swagger-core" }
+swagger-annotations = { group = "io.swagger.core.v3", name = "swagger-annotations", version.ref = "swagger-core" }
 fastexcel = { group = "cn.idev.excel", name = "fastexcel", version.ref = "fastexcel" }
 poi-ooxml = { group = "org.apache.poi", name = "poi-ooxml", version.ref = "poi" }
 poi-scratchpad = { group = "org.apache.poi", name = "poi-scratchpad", version.ref = "poi" }
@@ -115,7 +115,7 @@ junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform
 testing = ["spring-boot-starter-test", "junit-jupiter", "junit-platform-launcher"]
 
 # core 模块公开 API：统一响应、基础实体、分页类型、当前用户 SPI、Schema/Validation 注解和 Hutool 工具
-core-api = ["spring-boot-starter-json", "spring-web", "spring-data-commons", "jakarta-persistence-api", "jakarta-validation-api", "hibernate-core", "reactor-core", "micrometer-context-propagation", "swagger-annotations-jakarta", "hutool-all"]
+core-api = ["spring-boot-starter-json", "spring-web", "spring-data-commons", "jakarta-persistence-api", "jakarta-validation-api", "hibernate-core", "reactor-core", "micrometer-context-propagation", "swagger-annotations", "hutool-all"]
 
 # web 模块公开 API：WebFlux、参数校验、JPA Plus、MapStruct Plus 和接口加密默认 SM4 provider
 web-api = ["spring-boot-starter-webflux", "spring-boot-starter-validation", "mapstruct-plus-spring-boot-starter", "bouncycastle-bcprov-jdk18on"]

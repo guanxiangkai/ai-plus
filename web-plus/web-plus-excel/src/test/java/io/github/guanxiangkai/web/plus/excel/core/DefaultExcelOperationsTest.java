@@ -3,10 +3,13 @@ package io.github.guanxiangkai.web.plus.excel.core;
 import cn.idev.excel.FastExcel;
 import cn.idev.excel.annotation.ExcelProperty;
 import io.github.guanxiangkai.web.plus.excel.strategy.ExcelStyleStrategyFactory;
+import io.github.guanxiangkai.web.plus.excel.model.ExportContext;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
@@ -15,6 +18,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DefaultExcelOperationsTest {
+
+    @Test
+    void exportThenImport_roundTripsXlsxAndKeepsColumnSizing() throws Exception {
+        DefaultExcelOperations operations = new DefaultExcelOperations(new ExcelStyleStrategyFactory());
+        byte[] bytes = operations.export(ExportContext.of(
+                "round-trip",
+                TestRow.class,
+                List.of(new TestRow("a deliberately wide value"))
+        ));
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
+            var sheet = workbook.getSheet("Sheet1");
+            assertThat(sheet).isNotNull();
+            assertThat(sheet.getRow(1).getCell(0).getStringCellValue())
+                    .isEqualTo("a deliberately wide value");
+            assertThat(sheet.getColumnWidth(0)).isGreaterThan(256 * 10);
+        }
+        assertThat(operations.importFromStream(new ByteArrayInputStream(bytes), TestRow.class))
+                .extracting(TestRow::getName)
+                .containsExactly("a deliberately wide value");
+    }
 
     @Test
     void importExcel_returnsFailureWhenRowCountExceedsConfiguredLimit() {
