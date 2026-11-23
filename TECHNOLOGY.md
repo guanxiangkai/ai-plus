@@ -28,7 +28,7 @@ Spring BOM 管理的传递依赖和安全公告仍由工作流定期更新检查
 | 组件 | 当前锁定值 | 兼容性证据与必要验收 |
 | --- | --- | --- |
 | Bucket4j | 8.23.0 | 官方源码保留 `Bucket.builder`、`Bandwidth.builder`、`tryConsume`；CI 覆盖限流耗尽和 key 隔离 |
-| Springdoc / Swagger Annotations | 3.2.1 / 2.2.56 | Springdoc 3.2.1 对应 Boot 4.2；CI 验证真实 `/v3/api-docs` 与 Swagger annotations |
+| Springdoc / Swagger Annotations | 3.2.1 / 3.0.0 | Springdoc 3.2.1 parent 锁定 Swagger Core 3.0.0；CI 验证真实 `/v3/api-docs`，避免 2.x/3.x annotation 混用 |
 | Bouncy Castle | 1.87 | 官方 SM4 provider 接口需通过 Hutool 实际 provider 与加解密回归 |
 | Oracle GraalVM | 25（最新 GA 修复版） | Gradle 9.8.1 支持 JDK 25；工作流使用 `java-version: 25`，由 setup-java 解析最新 GA 修复版 |
 
@@ -95,7 +95,7 @@ Linux CI 中的验收入口是 `buildAll generatePomAll`、`.github/scripts/veri
 - [setup-java GraalVM 版本解析说明](https://github.com/actions/setup-java#graalvm)
 - [Bucket4j 8.23.0 发布说明](https://github.com/bucket4j/bucket4j/releases/tag/8.23.0)
 - [Springdoc 3.2.1 发布说明](https://github.com/springdoc/springdoc-openapi/releases/tag/v3.2.1)
-- [Swagger 2.2.56 发布说明](https://github.com/swagger-api/swagger-core/releases/tag/v2.2.56)
+- [Swagger 3.0.0 发布说明](https://github.com/swagger-api/swagger-core/releases/tag/v3.0.0)
 - [Bouncy Castle 1.87 官方发布说明](https://github.com/bcgit/bc-java/blob/r1rv87/docs/releasenotes.md)
 - [Maven Central](https://repo.maven.apache.org/maven2/) 与 [Gradle Plugin Portal](https://plugins.gradle.org/m2/)：按 catalog 坐标读取 `maven-metadata.xml`，排除 M/RC/alpha/beta/SNAPSHOT。
 - [ProGuard 配置手册](https://www.guardsquare.com/manual/configuration/usage)

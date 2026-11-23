@@ -11,7 +11,7 @@ spring-cloud = "2026.0.0"      # Spring Cloud 2026.0.0 稳定版，与 Spring Bo
 
 # ─────────────────────────── Web / 文档 / 文件处理 ─────────────────
 springdoc = "3.2.1"            # SpringDoc OpenAPI WebFlux UI，适配 Spring Boot 4.2；需 CI 验证 OpenAPI 输出
-swagger-core = "2.2.56"        # SpringDoc 3.2.1 配套 Swagger Core，供 DTO/VO Schema 元数据使用
+swagger-core = "3.0.0"        # SpringDoc 3.2.1 parent 配套 Swagger Core 3，避免混用 2.x annotations
 fastexcel = "1.3.0"            # FastExcel 导入导出，供 web-plus-excel 使用
 poi = "6.0.0"                  # Apache POI，供 Excel/Office 扩展能力使用；与 FastExcel 共存需 CI 验证
 
