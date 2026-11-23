@@ -20,7 +20,7 @@ Spring BOM 管理的传递依赖和安全公告仍由工作流定期更新检查
 | Vanniktech Publish | 0.37.0 | 元数据中的当前稳定版 |
 | Redisson / Hutool / Druid | 4.8.0 / 5.8.48 / 1.2.28 | 元数据中的当前稳定版 |
 | Sensitive Word / Datasource Proxy | 0.29.5 / 1.11.0 | 元数据中的当前稳定版 |
-| MapStruct Plus / FastExcel / POI | 1.5.4 / 1.3.0 / 6.0.0 | POI 6 与 FastExcel 的共存由 CI Excel 编译回归确认 |
+| MapStruct Plus / FastExcel / POI | 1.5.4 / 1.3.0 / 6.0.0 | 用 FastExcel 导出 XLSX，使用 POI 打开并核对单元格、重复导出的列宽，再用业务接口读回数据 |
 | PowerJob / JJWT | 5.1.7 / 0.13.0 | 元数据中的当前稳定版 |
 
 以下组件的采用依据覆盖项目实际调用面；发布说明与静态源码核对不替代 Linux CI 的运行证据：

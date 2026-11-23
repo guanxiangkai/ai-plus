@@ -41,6 +41,22 @@ class DefaultExcelOperationsTest {
     }
 
     @Test
+    void repeatedExportsDoNotReuseColumnWidthState() throws Exception {
+        DefaultExcelOperations operations = new DefaultExcelOperations(new ExcelStyleStrategyFactory());
+        var context = ExportContext.of("report", TestRow.class,
+                List.of(new TestRow("a value deliberately wider than ten characters")));
+        byte[] firstExport = operations.export(context);
+        byte[] secondExport = operations.export(context);
+
+        try (XSSFWorkbook first = new XSSFWorkbook(new ByteArrayInputStream(firstExport));
+             XSSFWorkbook second = new XSSFWorkbook(new ByteArrayInputStream(secondExport))) {
+            int width = first.getSheet("Sheet1").getColumnWidth(0);
+            assertThat(width).isGreaterThan(256 * 10);
+            assertThat(second.getSheet("Sheet1").getColumnWidth(0)).isEqualTo(width);
+        }
+    }
+
+    @Test
     void importExcel_returnsFailureWhenRowCountExceedsConfiguredLimit() {
         DefaultExcelOperations operations = new DefaultExcelOperations(new ExcelStyleStrategyFactory(), 2);
 

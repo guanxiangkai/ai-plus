@@ -15,16 +15,12 @@ public final class DefaultStyleStrategy implements ExcelStyleStrategy {
 
     public static final DefaultStyleStrategy INSTANCE = new DefaultStyleStrategy();
 
-    private static final List<WriteHandler> HANDLERS = List.of(
-            new LongestMatchColumnWidthStyleStrategy()
-    );
-
     private DefaultStyleStrategy() {
     }
 
     @Override
     public List<WriteHandler> getWriteHandlers() {
-        return HANDLERS;
+        return List.of(new LongestMatchColumnWidthStyleStrategy());
     }
 
     @Override

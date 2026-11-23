@@ -19,17 +19,12 @@ public final class ProfessionalStyleStrategy implements ExcelStyleStrategy {
 
     public static final ProfessionalStyleStrategy INSTANCE = new ProfessionalStyleStrategy();
 
-    private static final List<WriteHandler> HANDLERS = List.of(
-            new LongestMatchColumnWidthStyleStrategy(),
-            new ProfessionalHeaderHandler()
-    );
-
     private ProfessionalStyleStrategy() {
     }
 
     @Override
     public List<WriteHandler> getWriteHandlers() {
-        return HANDLERS;
+        return List.of(new LongestMatchColumnWidthStyleStrategy(), new ProfessionalHeaderHandler());
     }
 
     @Override
