@@ -56,8 +56,8 @@ Web 响应转换链使用每个策略的返回值，允许返回新对象和不�
 | 项目 | 采用版本或方案 | 依据与边界 |
 | --- | --- | --- |
 | Java | Oracle GraalVM 25.0.4 | 统一工具链基线，不启用预览特性 |
-| Spring Boot | 4.1.1 | [官方稳定发布](https://github.com/spring-projects/spring-boot/releases/tag/v4.1.1)；4.2.0-M1 是预发布 |
-| Spring Cloud | 2025.1.3 | [官方兼容矩阵](https://spring.io/projects/spring-cloud/)包含 Boot 4.1.x |
+| Spring Boot | 4.2.0 | [官方稳定发布](https://github.com/spring-projects/spring-boot/releases/tag/v4.2.0) |
+| Spring Cloud | 2026.0.0 | [官方兼容矩阵](https://spring.io/projects/spring-cloud/)对应 Boot 4.2.x |
 | Gradle | 9.7.1 | [官方版本元数据](https://services.gradle.org/versions/current)与 Wrapper SHA-256 一致 |
 | Redis 原语 | Redisson 4.7.0、Bucket4j 8.20.0 | 复用分布式锁和令牌桶实现，保持已有 SPI |
 | 查询映射缓存 | Caffeine，由 Boot BOM 托管 | [官方容量淘汰机制](https://github.com/ben-manes/caffeine/wiki/Eviction)与[原子加载](https://github.com/ben-manes/caffeine/wiki/Population)，无需自研 LRU |

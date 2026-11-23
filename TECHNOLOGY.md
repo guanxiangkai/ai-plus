@@ -9,7 +9,7 @@ Spring BOM 管理的全部传递依赖、安全公告和全部 GitHub Actions �
 | 组件 | 当前目录版本 | 核验与采用边界 |
 | --- | --- | --- |
 | Gradle | 9.7.1 | 官方 current 稳定版；分发 SHA-256 与 Wrapper 配置一致 |
-| Spring Boot / Cloud | 4.1.1 / 2025.1.3 | 当前稳定版；不选择 Boot 4.2.0-M1 |
+| Spring Boot / Cloud | 4.2.0 / 2026.0.0 | 当前稳定版，基于 Spring Framework 7.1；Cloud 2026.0.0 对应 Boot 4.2.x |
 | ProGuard | 7.10.0 | 当前稳定版，构建工具通过独立 JVM 调用 |
 | Maven Plugin API / Core | 3.9.16 | Maven 官方建议 3.9.x 用户使用该稳定补丁；不选择 4.0.0 RC |
 | SLF4J | 2.0.19 | JPA 模块只依赖标准 Logger/LoggerFactory 门面；需 CI 确认解析与测试 |

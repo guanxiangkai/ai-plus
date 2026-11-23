@@ -6,7 +6,7 @@
 [versions]
 
 # ─────────────────────────── Spring 体系 ───────────────────────────
-spring-boot = "4.1.1"          # Spring Boot 4.1.1 稳定补丁；带入 Spring Framework 7.0.9 与 Spring Data 2026.0.1，Repository/事务/健康检查 ABI 需构建验证
+spring-boot = "4.2.0"          # Spring Boot 4.2.0 稳定版；带入 Spring Framework 7.1 与 Spring Data 2026.1，Repository/事务/健康检查 ABI 需构建验证
 houbb-sensitive-word = "0.29.5" # houbb sensitive-word 高级 DFA 敏感词引擎（可选集成）
 
 # ─────────────────────────── 工具库 ──────────────────────────────
