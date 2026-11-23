@@ -110,11 +110,12 @@ public interface CrossShardQueryExecutor {
 
         List<T> all = executeAllSorted(rule, shardTask, comparator);
         int total = all.size();
-        int fromIndex = (page - 1) * pageSize;
-        if (fromIndex >= total) {
+        long fromOffset = (long) (page - 1) * pageSize;
+        if (fromOffset >= total) {
             return new PagedResult<>(List.of(), total, page, pageSize);
         }
-        int toIndex = Math.min(fromIndex + pageSize, total);
+        int fromIndex = Math.toIntExact(fromOffset);
+        int toIndex = (int) Math.min(fromOffset + pageSize, total);
         return new PagedResult<>(all.subList(fromIndex, toIndex), total, page, pageSize);
     }
 

@@ -30,12 +30,9 @@ Spring BOM 管理的全部传递依赖、安全公告和全部 GitHub Actions �
 | Bucket4j | 8.21.0 | 官方源码保留 `Bucket.builder`、`Bandwidth.builder`、`tryConsume`；CI 覆盖限流耗尽和 key 隔离 |
 | Springdoc / Swagger Annotations | 3.1.1 / 2.2.55 | Springdoc 官方明确升级 swagger-core 到 2.2.55；annotations Java 源码无改变，`Duration`/间接 Set 文档输出有变化；CI 验证真实 `/v3/api-docs` |
 | Bouncy Castle | 1.86 | 官方 SM4 provider 保留 CBC/128 位 KeyGen；SM4 变更涉及项目未使用的 KeyAgreement/CMS 和 GCM/CCM 参数；CI 验证 Hutool 实际 provider 与加解密 |
-| Oracle GraalVM | 25.0.4 | Gradle 9.8.1 支持 JDK 25；当前 `setup-java` GraalVM resolver 与官网 25.3 发行线目录不匹配，保持基线 |
+| Oracle GraalVM | 25（最新 GA 修复版） | Gradle 9.8.1 支持 JDK 25；工作流使用 `java-version: 25`，由 setup-java 解析最新 GA 修复版 |
 
-GraalVM 官网 SDKMAN 示例为 `25.3.4+1.r25-graal`，GDS archive 使用
-`25i3/archive/graalvm-jdk-25i3-25.0.4.1_linux-x64_bin.tar.gz`。当前所核对的 `setup-java` resolver
-将带点版本直接拼到 Oracle 的 `graalvm/25/archive/graalvm-jdk-{version}_linux-x64_bin.tar.gz`。
-该位置的 25.0.4 HEAD 为 200，而 25.3.4、25.3.4.1 及 SDKMAN 标识为 404，不能仅修改 java-version。
+GraalVM 25 的 CPU/CSPU 修复版按官方发布日历持续更新，工作流采用主版本约束以自动接收最新 GA 安全修复。
 需先为新发行线选择并验证受支持的安装方式及完整构建；现有 workflow 安装机制保持不变。
 
 JPA 模块发布 SLF4J runtime 依赖，其版本会进入 POM。JPA 的内部依赖以及 Web 的公开、运行时和可选
@@ -95,7 +92,7 @@ Linux CI 中的验收入口是 `buildAll generatePomAll`、`.github/scripts/veri
 - [Maven 3.10.0 官方发行说明](https://maven.apache.org/docs/3.10.0/release-notes.html)
 - [GraalVM 官方下载](https://www.graalvm.org/downloads/)：区分 JDK 基线与 GraalVM 发行线。
 - [Gradle 9.8.1 Java 兼容表](https://docs.gradle.org/9.8.1/userguide/compatibility.html)
-- [工作流固定提交的 setup-java GraalVM resolver](https://github.com/actions/setup-java/blob/dd06d9cba3e5552c54d9f8ea23572deb30010f7c/src/distributions/graalvm/installer.ts#L234)
+- [setup-java GraalVM 版本解析说明](https://github.com/actions/setup-java#graalvm)
 - [Bucket4j 8.21.0 发布说明](https://github.com/bucket4j/bucket4j/releases/tag/8.21.0)
 - [Springdoc 3.1.1 发布说明](https://github.com/springdoc/springdoc-openapi/releases/tag/v3.1.1)
 - [Swagger 2.2.55 发布说明](https://github.com/swagger-api/swagger-core/releases/tag/v2.2.55)

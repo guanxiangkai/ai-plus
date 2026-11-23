@@ -55,7 +55,7 @@ Web 响应转换链使用每个策略的返回值，允许返回新对象和不�
 
 | 项目 | 采用版本或方案 | 依据与边界 |
 | --- | --- | --- |
-| Java | Oracle GraalVM 25.0.4 | 统一工具链基线，不启用预览特性 |
+| Java | Oracle GraalVM 25（由 setup-java 解析最新 GA 修复版） | 统一工具链基线，不启用预览特性 |
 | Spring Boot | 4.2.0 | [官方稳定发布](https://github.com/spring-projects/spring-boot/releases/tag/v4.2.0) |
 | Spring Cloud | 2026.0.0 | [官方兼容矩阵](https://spring.io/projects/spring-cloud/)对应 Boot 4.2.x |
 | Gradle | 9.8.1 | [官方版本元数据](https://services.gradle.org/versions/current)与 Wrapper SHA-256 一致 |
