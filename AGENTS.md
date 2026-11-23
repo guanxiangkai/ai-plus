@@ -11,7 +11,7 @@
 - 每个可发布模块的版本唯一记录在 `gradle/module-versions.properties`；只递增发生变化的模块及受其公开契约影响的下游模块。
 - 发布制品统一进入 Maven Central，并通过 Central Portal 与 GPG 签名完成公开发布；用户名、发布令牌和私钥只能由受保护的 GitHub Actions Secret 注入。
 - 发布必须通过 GitHub Actions 手工选择模块，先执行完整构建，不得覆盖已经发布的同版本制品。
-- Java 基线为 Oracle GraalVM 25.0.4，Spring 版本遵循各能力族锁定的稳定版本；公开 API 和关键边界提供准确简洁的中文 Javadoc。
+- Java 基线为 Oracle GraalVM 25 最新 GA 修复版，Spring 版本遵循各能力族锁定的稳定版本；公开 API 和关键边界提供准确简洁的中文 Javadoc。
 - Java 消费方优先通过公开 Maven 坐标复用本仓库能力；消费方仓库不得复制 Controller、Service、Repository、鉴权、日志、缓存、幂等、消息和数据访问等通用实现。
 - 可复用常量、枚举、值对象、转换规则和扩展策略只保留一个权威定义；调用方必须依赖该定义，不散落魔法值或重复判断。
 - macOS 只保存和编辑源码；依赖、构建、测试与制品验证在 GitHub 托管的 Linux CI 环境执行，不向任何固定内网主机同步源码。

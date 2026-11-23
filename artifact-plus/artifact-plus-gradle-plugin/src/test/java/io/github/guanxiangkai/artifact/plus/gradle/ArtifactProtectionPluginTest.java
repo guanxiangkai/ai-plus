@@ -143,11 +143,11 @@ class ArtifactProtectionPluginTest {
         writeBuild("""
                 plugins {
                     id 'java'
-                    id 'org.springframework.boot' version '4.1.1'
+                    id 'org.springframework.boot' version '4.2.0'
                     id 'io.github.guanxiangkai.artifact-protection'
                 }
                 repositories { mavenCentral() }
-                dependencies { implementation 'org.springframework.boot:spring-boot-starter:4.1.1' }
+                dependencies { implementation 'org.springframework.boot:spring-boot-starter:4.2.0' }
                 artifactProtection {
                     enabled = true
                     obfuscationEnabled = true

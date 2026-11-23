@@ -8,10 +8,6 @@
  * 因此功能模块依赖保留 {@code api} 暴露，确保使用方在仅引入 starter 时即可直接访问
  * Repository、注解、事件与 SPI 类型；Boot 装配与可选增强继续收敛在内部实现层。</p>
  */
-plugins {
-    alias(libs.plugins.springboot) apply false
-}
-
 dependencies {
     // ═══════════ Spring Boot BOM（暴露给最终用户的版本管理） ═══════════
     api(platform(libs.spring.boot.dependencies))

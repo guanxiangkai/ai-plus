@@ -10,7 +10,6 @@ import java.util.Properties
 plugins {
     java
     alias(libs.plugins.lombok)
-    alias(libs.plugins.springboot) apply false
     alias(libs.plugins.errorprone) apply false
     alias(libs.plugins.maven.publish) apply false
 }

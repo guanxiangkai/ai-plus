@@ -248,5 +248,18 @@ class ShardingRoutingTest {
         assertTrue(outOfRange.content().isEmpty());
         assertEquals(24, outOfRange.total());
     }
+
+    @Test
+    @DisplayName("executePaged：超大页码不会因整数乘法溢出而返回错误数据")
+    void testExecutePagedLargePageDoesNotOverflow() throws Exception {
+        CrossShardQueryExecutor.ShardTaskFactory<Integer> factory = target -> List.of(1, 2, 3);
+
+        CrossShardQueryExecutor.PagedResult<Integer> outOfRange =
+                sequentialExecutor.executePaged(ORDER_RULE, factory,
+                        Comparator.naturalOrder(), Integer.MAX_VALUE, Integer.MAX_VALUE);
+
+        assertTrue(outOfRange.content().isEmpty());
+        assertEquals(24, outOfRange.total());
+    }
 }
 

@@ -19,17 +19,12 @@ public final class ColorfulStyleStrategy implements ExcelStyleStrategy {
 
     public static final ColorfulStyleStrategy INSTANCE = new ColorfulStyleStrategy();
 
-    private static final List<WriteHandler> HANDLERS = List.of(
-            new LongestMatchColumnWidthStyleStrategy(),
-            new ColorfulRowHandler()
-    );
-
     private ColorfulStyleStrategy() {
     }
 
     @Override
     public List<WriteHandler> getWriteHandlers() {
-        return HANDLERS;
+        return List.of(new LongestMatchColumnWidthStyleStrategy(), new ColorfulRowHandler());
     }
 
     @Override
