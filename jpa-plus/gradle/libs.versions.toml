@@ -10,11 +10,11 @@ spring-boot = "4.2.0"          # Spring Boot 4.2.0 稳定版；带入 Spring Fra
 houbb-sensitive-word = "0.29.5" # houbb sensitive-word 高级 DFA 敏感词引擎（可选集成）
 
 # ─────────────────────────── 工具库 ──────────────────────────────
-hutool = "5.8.47"              # hutool-crypto：国密 SM4、AES-CBC；hutool-core：通用工具
+hutool = "5.8.48"              # hutool-crypto：国密 SM4、AES-CBC；hutool-core：通用工具
 slf4j = "2.0.20"               # SLF4J API：库模块只绑定门面，不绑定实现
 
 # ─────────────────────────── SQL 调试 ────────────────────────────
-datasource-proxy = "1.11.0"      # datasource-proxy —— JDBC 代理层 SQL 追踪（比 P6Spy 更活跃，零连接池侵入）
+datasource-proxy = "1.11.1"      # datasource-proxy —— JDBC 代理层 SQL 追踪（比 P6Spy 更活跃，零连接池侵入）
 
 # ─────────────────────────── 连接池（可选）────────────────────────
 druid = "1.2.28"              # Alibaba Druid 连接池 —— 与 HikariCP 二选一（可选）
@@ -209,7 +209,5 @@ starter-optional = ["micrometer-core", "datasource-proxy", "druid"]
 # Lombok 编译期代码生成（@Data / @Slf4j / @Builder 等）
 lombok = { id = "io.freefair.lombok", version.ref = "lombok-plugin" }
 
-# Spring Boot Gradle 插件（bootJar / bootRun / 依赖管理）
-springboot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 versions = { id = "io.github.ben-manes.versions", version.ref = "versions-plugin" }
 maven-publish = { id = "com.vanniktech.maven.publish.base", version.ref = "maven-publish-plugin" }

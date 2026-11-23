@@ -16,11 +16,11 @@ lombok-plugin = "9.8.3"         # Lombok Gradle 插件
 lombok = "1.18.48"             # Lombok 稳定版；统一编译、测试与 delombok，避免沿用插件默认处理器
 testcontainers = "2.0.5"       # Testcontainers Java：集成测试容器编排
 archunit = "1.5.1"             # ArchUnit 当前稳定版，支持 JUnit 6、JDK 25 与 Java 27 class 文件
-hutool = "5.8.47"              # Hutool Core：内部工具辅助，禁止进入公共 API
+hutool = "5.8.48"              # Hutool Core：内部工具辅助，禁止进入公共 API
 redisson = "4.8.0"             # Redisson：正式分布式 Redis 原语后端；需验证锁、限流与 Spring Data Redis 2026 组合兼容性
-bucket4j = "8.21.0"            # Bucket4j：可选令牌桶限流后端
-errorprone = "2.50.0"          # Error Prone：编译期缺陷模式检查；升级可能新增诊断，配合 -Werror 会直接阻断编译
-nullaway = "0.14.2"            # NullAway 稳定修复版，与 Error Prone 2.50.0 配套；保持默认检查模式，需以全量编译验证
+bucket4j = "8.23.0"            # Bucket4j：可选令牌桶限流后端，升级需 CI 验证 builder API
+errorprone = "2.53.0"          # Error Prone：编译期缺陷模式检查；升级可能新增诊断，配合 -Werror 会直接阻断编译
+nullaway = "0.14.4"            # NullAway 稳定修复版，与 Error Prone 2.53.0 配套；需以全量编译验证
 errorprone-plugin = "5.2.0"    # Error Prone Gradle 插件
 maven-publish-plugin = "0.37.0" # Vanniktech Maven Publish：Central Portal 上传与内存 GPG 签名
 
@@ -181,9 +181,6 @@ starter-impl-support = ["spring-beans", "aspectjweaver", "spring-boot-starter-da
 
 # Lombok 编译期代码生成（@Data / @Slf4j / @Builder 等）
 lombok = { id = "io.freefair.lombok", version.ref = "lombok-plugin" }
-
-# Spring Boot Gradle 插件（bootJar / bootRun / 依赖管理）
-springboot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 
 # Error Prone / NullAway 静态检查
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }

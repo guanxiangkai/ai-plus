@@ -11,25 +11,25 @@ Spring BOM 管理的传递依赖和安全公告仍由工作流定期更新检查
 | Gradle | 9.8.1 | 官方 current 稳定版；分发 SHA-256 与 Wrapper 配置一致 |
 | Spring Boot / Cloud | 4.2.0 / 2026.0.0 | 当前稳定版，基于 Spring Framework 7.1；Cloud 2026.0.0 对应 Boot 4.2.x |
 | ProGuard | 7.10.0 | 当前稳定版，构建工具通过独立 JVM 调用 |
-| Maven Plugin API / Core | 3.10.0 | Maven 官方稳定版本；不选择 Maven 4 RC |
+| Maven Plugin API / Core | 3.10.2 | Maven 官方稳定版本；不选择 Maven 4 RC |
 | SLF4J | 2.0.19 | JPA 模块只依赖标准 Logger/LoggerFactory 门面；需 CI 确认解析与测试 |
 | Versions Plugin | 0.67.0 | 最新稳定版本，仅影响依赖更新报告任务 |
 | Lombok / FreeFair | 1.18.48 / 9.8.3 | 元数据中的当前稳定版；生成代码兼容性仍由 Linux CI 验证 |
 | JUnit / Testcontainers / ArchUnit | 6.1.3 / 2.0.5 / 1.5.1 | 元数据中的当前稳定版 |
-| Error Prone / NullAway / Error Prone Plugin | 2.50.0 / 0.14.2 / 5.2.0 | 元数据中的当前稳定版 |
+| Error Prone / NullAway / Error Prone Plugin | 2.53.0 / 0.14.4 / 5.2.0 | 元数据中的当前稳定版；CI 验证 -Werror 诊断 |
 | Vanniktech Publish | 0.37.0 | 元数据中的当前稳定版 |
-| Redisson / Hutool / Druid | 4.8.0 / 5.8.47 / 1.2.28 | 元数据中的当前稳定版 |
+| Redisson / Hutool / Druid | 4.8.0 / 5.8.48 / 1.2.28 | 元数据中的当前稳定版 |
 | Sensitive Word / Datasource Proxy | 0.29.5 / 1.11.0 | 元数据中的当前稳定版 |
-| MapStruct Plus / FastExcel / POI | 1.5.3 / 1.3.0 / 5.5.1 | 元数据中的当前稳定版 |
+| MapStruct Plus / FastExcel / POI | 1.5.4 / 1.3.0 / 6.0.0 | POI 6 与 FastExcel 的共存由 CI Excel 编译回归确认 |
 | PowerJob / JJWT | 5.1.7 / 0.13.0 | 元数据中的当前稳定版 |
 
 以下组件的采用依据覆盖项目实际调用面；发布说明与静态源码核对不替代 Linux CI 的运行证据：
 
 | 组件 | 当前锁定值 | 兼容性证据与必要验收 |
 | --- | --- | --- |
-| Bucket4j | 8.21.0 | 官方源码保留 `Bucket.builder`、`Bandwidth.builder`、`tryConsume`；CI 覆盖限流耗尽和 key 隔离 |
-| Springdoc / Swagger Annotations | 3.1.1 / 2.2.55 | Springdoc 官方明确升级 swagger-core 到 2.2.55；annotations Java 源码无改变，`Duration`/间接 Set 文档输出有变化；CI 验证真实 `/v3/api-docs` |
-| Bouncy Castle | 1.86 | 官方 SM4 provider 保留 CBC/128 位 KeyGen；SM4 变更涉及项目未使用的 KeyAgreement/CMS 和 GCM/CCM 参数；CI 验证 Hutool 实际 provider 与加解密 |
+| Bucket4j | 8.23.0 | 官方源码保留 `Bucket.builder`、`Bandwidth.builder`、`tryConsume`；CI 覆盖限流耗尽和 key 隔离 |
+| Springdoc / Swagger Annotations | 3.2.1 / 2.2.56 | Springdoc 3.2.1 对应 Boot 4.2；CI 验证真实 `/v3/api-docs` 与 Swagger annotations |
+| Bouncy Castle | 1.87 | 官方 SM4 provider 接口需通过 Hutool 实际 provider 与加解密回归 |
 | Oracle GraalVM | 25（最新 GA 修复版） | Gradle 9.8.1 支持 JDK 25；工作流使用 `java-version: 25`，由 setup-java 解析最新 GA 修复版 |
 
 GraalVM 25 的 CPU/CSPU 修复版按官方发布日历持续更新，工作流采用主版本约束以自动接收最新 GA 安全修复。
@@ -38,7 +38,7 @@ GraalVM 25 的 CPU/CSPU 修复版按官方发布日历持续更新，工作流�
 JPA 模块发布 SLF4J runtime 依赖，其版本会进入 POM。JPA 的内部依赖以及 Web 的公开、运行时和可选
 依赖共同构成版本传播范围；版本表中的相关 JPA/Web 模块使用独立补丁版本。Redis 限流模块、对应 starter
 与聚合 starter 的版本覆盖 Bucket4j 发布依赖闭包。Artifact Plus 与授权模块的
-版本表记录本次基线升级后的独立坐标；可用性以 Maven Central 实际坐标为准。Maven 插件编译使用 3.10.0 API，声明的最低
+版本表记录本次基线升级后的独立坐标；可用性以 Maven Central 实际坐标为准。Maven 插件编译使用 3.10.2 API，声明的最低
 Maven 运行版本为 3.9.11；当前只调用稳定 Maven 3 接口，兼容性需要消费方 CI 验收。
 
 ## 业务制品保护的架构
@@ -89,18 +89,18 @@ Linux CI 中的验收入口是 `buildAll generatePomAll`、`.github/scripts/veri
 ## 来源
 
 - [Gradle 官方当前版本](https://services.gradle.org/versions/current)
-- [Maven 3.10.0 官方发行说明](https://maven.apache.org/docs/3.10.0/release-notes.html)
+- [Maven 3.10.2 官方发行说明](https://maven.apache.org/docs/3.10.2/release-notes.html)
 - [GraalVM 官方下载](https://www.graalvm.org/downloads/)：区分 JDK 基线与 GraalVM 发行线。
 - [Gradle 9.8.1 Java 兼容表](https://docs.gradle.org/9.8.1/userguide/compatibility.html)
 - [setup-java GraalVM 版本解析说明](https://github.com/actions/setup-java#graalvm)
-- [Bucket4j 8.21.0 发布说明](https://github.com/bucket4j/bucket4j/releases/tag/8.21.0)
-- [Springdoc 3.1.1 发布说明](https://github.com/springdoc/springdoc-openapi/releases/tag/v3.1.1)
-- [Swagger 2.2.55 发布说明](https://github.com/swagger-api/swagger-core/releases/tag/v2.2.55)
-- [Bouncy Castle 1.86 官方发布说明](https://github.com/bcgit/bc-java/blob/r1rv86/docs/releasenotes.md)
+- [Bucket4j 8.23.0 发布说明](https://github.com/bucket4j/bucket4j/releases/tag/8.23.0)
+- [Springdoc 3.2.1 发布说明](https://github.com/springdoc/springdoc-openapi/releases/tag/v3.2.1)
+- [Swagger 2.2.56 发布说明](https://github.com/swagger-api/swagger-core/releases/tag/v2.2.56)
+- [Bouncy Castle 1.87 官方发布说明](https://github.com/bcgit/bc-java/blob/r1rv87/docs/releasenotes.md)
 - [Maven Central](https://repo.maven.apache.org/maven2/) 与 [Gradle Plugin Portal](https://plugins.gradle.org/m2/)：按 catalog 坐标读取 `maven-metadata.xml`，排除 M/RC/alpha/beta/SNAPSHOT。
 - [ProGuard 配置手册](https://www.guardsquare.com/manual/configuration/usage)
 - [Gradle 避免过早配置任务](https://docs.gradle.org/current/userguide/task_configuration_avoidance.html)
 - [Gradle 插件发布约定](https://docs.gradle.org/current/userguide/java_gradle_plugin.html#sec:gradle_plugin_dev_maven_publish)
 - [Gradle 论坛：afterEvaluate 与懒任务配置](https://discuss.gradle.org/t/gradle-5-0-rc1-and-afterevaluate/29401/4)：用于理解生命周期风险，不把旧讨论等同当前 API 保证。
 - [GitHub 官方博客：Artifact Attestations](https://github.blog/news-insights/product-news/introducing-artifact-attestations-now-in-public-beta/)
-- [Springdoc 官网](https://springdoc.org/)：页面标识 3.1.1，并描述 Scalar 转发头处理变化；本仓库不因该页面自动引入 Scalar/MCP。
+- [Springdoc 官网](https://springdoc.org/)：页面标识 3.2.1，并描述 Scalar 转发头处理变化；本仓库不因该页面自动引入 Scalar/MCP。

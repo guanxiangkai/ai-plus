@@ -143,7 +143,7 @@ class ArtifactProtectionPluginTest {
         writeBuild("""
                 plugins {
                     id 'java'
-                id 'org.springframework.boot' version '4.2.0'
+                    id 'org.springframework.boot' version '4.2.0'
                     id 'io.github.guanxiangkai.artifact-protection'
                 }
                 repositories { mavenCentral() }
