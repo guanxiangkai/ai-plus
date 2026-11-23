@@ -90,7 +90,7 @@
 |-------------|-------------------|
 | JDK         | `25`              |
 | Spring Boot | `4.2.0+`          |
-| Gradle      | `9.7.1`（Kotlin DSL） |
+| Gradle      | `9.8.1`（Kotlin DSL） |
 
 > 构建使用 JDK 25 toolchain，不需要 `--enable-preview`。
 
